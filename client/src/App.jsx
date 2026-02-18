@@ -1,0 +1,56 @@
+/**
+ * App.jsx - All routes, protected routes, role-based redirection, Auth Provider wrapper
+ */
+
+import React from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+
+import { ProtectedRoute } from './components/ProtectedRoute';
+
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import RegisterEmployeePage from './pages/RegisterEmployeePage';
+import EmployeeDashboardPage from './pages/EmployeeDashboardPage';
+import HeadDashboardPage from './pages/HeadDashboardPage';
+
+export default function App() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterEmployeePage />} />
+
+        <Route
+          path="/employee/dashboard"
+          element={
+            <ProtectedRoute requiredRole="employee">
+              <EmployeeDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employee/posture"
+          element={
+            <ProtectedRoute requiredRole="employee">
+              <EmployeeDashboardPage defaultTab="posture" />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/head/dashboard"
+          element={
+            <ProtectedRoute requiredRole="head">
+              <HeadDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}

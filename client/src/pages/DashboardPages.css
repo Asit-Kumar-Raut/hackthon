@@ -1,0 +1,41 @@
+.dashboard-page {
+  min-height: 100vh;
+  background: #000000;
+}
+
+.dashboard-navbar {
+  background: rgba(10, 10, 10, 0.95);
+  border-bottom: 2px solid #FF0000;
+  padding: 0.75rem 1rem;
+}
+
+.dashboard-navbar .navbar-brand {
+  font-weight: 600;
+}
+
+.dashboard-navbar .nav-link.active {
+  border-bottom: 2px solid #FF0000;
+  margin-bottom: -2px;
+}
+
+.dashboard-navbar .nav-link:hover {
+  color: #ffffff !important;
+}
+
+.alert-banner {
+  border-bottom: 2px solid #dc3545;
+}
+
+.alert-banner .alert {
+  background: rgba(220, 53, 69, 0.2);
+  border: none;
+  color: #fff;
+}
+
+.head-dashboard .dashboard-card {
+  border: 1px solid #FF0000;
+}
+
+.employee-dashboard .dashboard-card {
+  border: 1px solid #FF0000;
+}

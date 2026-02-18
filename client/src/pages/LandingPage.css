@@ -1,0 +1,29 @@
+.landing-page {
+  background: #000000;
+}
+
+.landing-title {
+  color: #ffffff;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 600;
+  border-bottom: 2px solid #FF0000;
+  display: inline-block;
+  padding-bottom: 0.5rem;
+}
+
+.landing-btn {
+  min-width: 220px;
+  padding: 18px 36px;
+  font-size: 1.25rem;
+  color: #ffffff;
+  background: transparent;
+  border: 2px solid #FF0000;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.landing-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 0, 0, 0.15);
+  box-shadow: 0 0 25px rgba(255, 0, 0, 0.6);
+}

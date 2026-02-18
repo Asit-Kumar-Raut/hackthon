@@ -1,0 +1,36 @@
+.auth-page {
+  background: #000000;
+}
+
+.auth-container {
+  max-width: 420px;
+  border: 1px solid #FF0000;
+  border-radius: 12px;
+  padding: 2rem;
+  background: rgba(15, 15, 15, 0.95);
+}
+
+.auth-title {
+  color: #ffffff;
+  font-size: 1.75rem;
+  border-bottom: 2px solid #FF0000;
+  padding-bottom: 0.5rem;
+}
+
+.auth-page .form-control,
+.auth-page .form-select {
+  background: rgba(30, 30, 30, 0.9);
+  border: 1px solid #FF0000;
+  color: #ffffff;
+  border-radius: 8px;
+}
+.auth-page .form-control:focus,
+.auth-page .form-select:focus {
+  background: rgba(40, 40, 40, 0.9);
+  border-color: #FF0000;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+  color: #ffffff;
+}
+.auth-page .form-label {
+  color: #ffffff;
+}

@@ -1,0 +1,25 @@
+{
+  "name": "ai-smart-monitoring-server",
+  "version": "1.0.0",
+  "description": "Backend for AI Smart Posture & Crowd Monitoring System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "chalk": "^5.6.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "engine.io": "^6.6.5",
+    "engine.io-parser": "^5.2.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

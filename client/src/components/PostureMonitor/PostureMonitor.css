@@ -1,0 +1,101 @@
+.posture-monitor {
+  padding: 0.5rem 0;
+}
+
+.posture-feed {
+  position: relative;
+  display: inline-block;
+  border: 2px solid #FF0000;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.posture-video,
+.posture-canvas {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  border-radius: 10px;
+}
+
+.posture-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.posture-status-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid;
+}
+.posture-status-badge.good {
+  border-color: #28a745;
+  color: #28a745;
+}
+.posture-status-badge.bad {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.btn-danger-soft {
+  border-color: #dc3545;
+  color: #ff6b6b;
+}
+.btn-danger-soft:hover {
+  background: rgba(220, 53, 69, 0.2);
+  color: #fff;
+}
+
+.posture-chart-bar {
+  border-radius: 4px 4px 0 0;
+  min-height: 8px;
+}
+.posture-chart-bar.good {
+  background: rgba(40, 167, 69, 0.8);
+}
+.posture-chart-bar.bad {
+  background: rgba(220, 53, 69, 0.8);
+}
+
+.chart-legend {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.chart-legend.good { background: #28a745; }
+.chart-legend.bad { background: #dc3545; }
+
+.alert-overlay-card {
+  background: rgba(20, 20, 20, 0.98);
+  border: 2px solid #FF0000;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(255, 0, 0, 0.3);
+}
+
+.alert-overlay-title {
+  color: #FF0000;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.alert-overlay-message {
+  color: #ffffff;
+  margin: 0;
+}

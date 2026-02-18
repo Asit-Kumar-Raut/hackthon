@@ -1,0 +1,105 @@
+/**
+ * Global theme: Pure Black (#000000), Borders Bright Red (#FF0000), Text White
+ * Professional corporate dashboard - responsive
+ */
+
+:root {
+  --bg-primary: #000000;
+  --border-red: #FF0000;
+  --text-white: #ffffff;
+  --red-glow: rgba(255, 0, 0, 0.6);
+  --red-soft: rgba(255, 0, 0, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-white);
+  min-height: 100vh;
+}
+
+/* Red outline buttons with hover glow */
+.btn-outline-red {
+  color: var(--text-white);
+  border: 2px solid var(--border-red);
+  background: transparent;
+  padding: 12px 28px;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+.btn-outline-red:hover {
+  color: var(--text-white);
+  border-color: var(--border-red);
+  background: var(--red-soft);
+  box-shadow: 0 0 20px var(--red-glow);
+}
+
+/* Cards */
+.dashboard-card {
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid var(--border-red);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px var(--red-soft);
+}
+
+/* Page transition base */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Blur overlay for posture alert */
+.alert-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.4s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Inputs */
+.form-control-custom {
+  background: rgba(30, 30, 30, 0.9);
+  border: 1px solid var(--border-red);
+  color: var(--text-white);
+  border-radius: 8px;
+}
+.form-control-custom:focus {
+  border-color: var(--border-red);
+  box-shadow: 0 0 10px var(--red-soft);
+  color: var(--text-white);
+  background: rgba(40, 40, 40, 0.9);
+}
+
+/* Links */
+a {
+  color: #ff4444;
+  text-decoration: none;
+}
+a:hover {
+  color: #ff6666;
+}

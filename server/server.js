@@ -1,0 +1,62 @@
+/**
+ * AI Smart Posture & Crowd Monitoring System - Backend Server
+ * Entry point: Express + MongoDB + Socket.io
+ */
+
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
+const http = require('http');
+const { Server } = require('socket.io');
+
+const authRoutes = require('./routes/auth');
+const postureRoutes = require('./routes/posture');
+const crowdRoutes = require('./routes/crowd');
+const { authenticateToken } = require('./middleware/auth');
+const { setupSocketHandlers } = require('./middleware/socketHandlers');
+
+const app = express();
+const httpServer = http.createServer(app);
+
+// Socket.io with CORS for client origin
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+  },
+});
+
+// Middleware
+app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:3000', credentials: true }));
+app.use(express.json());
+
+// Make io available to routes (for real-time updates)
+app.set('io', io);
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/posture', authenticateToken, postureRoutes);
+app.use('/api/crowd', authenticateToken, crowdRoutes);
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'AI Smart Monitoring API' });
+});
+
+// Socket connection & handlers
+io.on('connection', (socket) => {
+  setupSocketHandlers(socket, io);
+});
+
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-smart-monitoring';
+mongoose
+  .connect(MONGODB_URI)
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error('MongoDB connection error:', err));
+
+const PORT = process.env.PORT || 5000;
+httpServer.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
