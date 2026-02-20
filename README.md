@@ -130,3 +130,6 @@ cd client && npm run build
 - MediaPipe Pose is loaded dynamically; if it fails (e.g. CORS/ESM), a simulated posture (random good/bad) is used.
 - **Crowd detection:** If the **Python OpenCV + YOLO** service is running (`python_detector/app.py` on port 5001), the frontend uses it for accurate person detection. Otherwise it uses TensorFlow.js COCO-SSD in the browser, then simulated count. Install Python deps: `cd python_detector && pip install -r requirements.txt` (first run downloads YOLOv8 weights).
 - **Alert siren:** Plays automatically on posture alert and crowd violation; allow browser audio if prompted.
+
+# hckthon
+ Full-stack AI-powered monitoring web application with posture detection (MediaPipe) and crowd detection (simulated; YOLO-ready), JWT auth, and role-based dashboards.
