@@ -10,7 +10,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useAlertSiren } from '../../hooks/useAlertSiren';
 import './CrowdDetector.css';
 
-const RESTRICTED_THRESHOLD = 5;
+// Trigger alert when more than 3 people are detected in the frame
+const RESTRICTED_THRESHOLD = 3;
 const DETECTION_INTERVAL_MS = 1500;
 const MIN_CONFIDENCE = 0.5;
 const DETECTOR_ENDPOINT = '/detector/detect'; // Python OpenCV+YOLO service (proxied by Vite)
@@ -31,6 +32,7 @@ export default function CrowdDetector({ onAlert, onLog }) {
   const [modelLoaded, setModelLoaded] = useState(false);
   const [detectionMode, setDetectionMode] = useState('yolo'); // 'yolo' | 'tfjs' | 'simulate'
   const [detectorHealthy, setDetectorHealthy] = useState(null); // null | true | false
+  const [highCrowdStreak, setHighCrowdStreak] = useState(0); // number of consecutive high-crowd detections
 
   const loadModel = useCallback(async () => {
     if (modelRef.current) return true;
@@ -64,11 +66,18 @@ export default function CrowdDetector({ onAlert, onLog }) {
 
   const startCamera = async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not available in this browser.');
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        try {
+          await videoRef.current.play();
+        } catch (playErr) {
+          console.warn('Crowd video play() failed, will rely on autoPlay/onLoadedMetadata', playErr);
+        }
       }
       const detectorOk = await checkPythonDetector();
       if (detectorOk) {
@@ -209,25 +218,32 @@ export default function CrowdDetector({ onAlert, onLog }) {
     }
 
     setCrowdCount(count);
-    const violation = count > RESTRICTED_THRESHOLD;
-    setRestrictedViolation(violation);
-    if (violation) {
+
+    const isHighCrowd = count > RESTRICTED_THRESHOLD;
+    setHighCrowdStreak((prev) => (isHighCrowd ? prev + 1 : 0));
+
+    // Require sustained high crowd across multiple detections before raising violation
+    const sustainedViolation = isHighCrowd && highCrowdStreak >= 1; // this + previous tick ≈ "for some time"
+
+    setRestrictedViolation(sustainedViolation);
+    if (sustainedViolation && !alertTriggered) {
       setAlertTriggered(true);
-      playSiren(4000);
+      // buzzers / siren for 10 seconds when sustained crowd condition first met
+      playSiren(10000);
     }
 
     if (user?.employeeId) {
       try {
         await api.post('/api/crowd/log', {
           detectedCount: count,
-          restrictedViolation: violation,
-          alertTriggered: violation,
+          restrictedViolation: sustainedViolation,
+          alertTriggered: sustainedViolation,
         });
         onLog?.();
-        if (violation) onAlert?.();
+        if (sustainedViolation) onAlert?.();
       } catch (e) {}
     }
-  }, [detectionMode, user?.employeeId, onLog, onAlert, playSiren]);
+  }, [detectionMode, user?.employeeId, onLog, onAlert, playSiren, alertTriggered, highCrowdStreak]);
 
   useEffect(() => {
     if (!isStarted) return;
@@ -281,7 +297,20 @@ export default function CrowdDetector({ onAlert, onLog }) {
       {isStarted && (
         <>
           <div className="crowd-feed position-relative mb-3">
-            <video ref={videoRef} className="crowd-video" playsInline muted style={{ transform: 'scaleX(-1)' }} />
+            <video
+              ref={videoRef}
+              className="crowd-video"
+              controls
+              autoPlay
+              playsInline
+              muted
+              onLoadedMetadata={() => {
+                if (videoRef.current) {
+                  videoRef.current.play().catch(() => {});
+                }
+              }}
+              style={{ transform: 'scaleX(-1)' }}
+            />
             <canvas
               ref={canvasRef}
               className="crowd-canvas"

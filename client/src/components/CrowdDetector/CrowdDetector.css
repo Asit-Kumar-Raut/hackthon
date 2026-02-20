@@ -3,6 +3,7 @@
 }
 
 .crowd-feed {
+  position: relative;
   display: inline-block;
   border: 2px solid #FF0000;
   border-radius: 12px;
@@ -10,12 +11,12 @@
   max-width: 100%;
 }
 
-.crowd-video,
-.crowd-canvas {
+.crowd-video {
   display: block;
   width: 100%;
   max-width: 640px;
-  height: auto;
+  height: 480px;
+  object-fit: cover;
   border-radius: 10px;
 }
 
@@ -23,6 +24,11 @@
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
+  max-width: 640px;
+  height: 480px;
+  border-radius: 10px;
+  z-index: 2;
   pointer-events: none;
 }
 

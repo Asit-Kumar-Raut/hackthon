@@ -5,7 +5,8 @@
 const PostureLog = require('../models/PostureLog');
 const { emitPostureAlert } = require('../middleware/socketHandlers');
 
-const BAD_POSTURE_ALERT_MINUTES = 10;
+// Keep backend in sync with frontend: alert after 1 minute of bad posture
+const BAD_POSTURE_ALERT_MINUTES = 1;
 
 /**
  * GET /api/posture/data
@@ -69,7 +70,12 @@ exports.logPosture = async (req, res) => {
     // If alert triggered, emit socket event
     if (eventType === 'alert_triggered') {
       const io = req.app.get('io');
-      if (io) emitPostureAlert(io, employeeId, { log, message: 'Bad posture exceeded 10 minutes.' });
+      if (io) {
+        emitPostureAlert(io, employeeId, {
+          log,
+          message: `Bad posture exceeded ${BAD_POSTURE_ALERT_MINUTES} minute${BAD_POSTURE_ALERT_MINUTES > 1 ? 's' : ''}.`,
+        });
+      }
     }
 
     res.status(201).json(log);

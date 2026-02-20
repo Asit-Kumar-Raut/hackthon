@@ -7,8 +7,18 @@ import { motion } from 'framer-motion';
 
 export default function PostureAlertOverlay({ onDismiss, message, playSiren, stopSiren }) {
   useEffect(() => {
-    if (playSiren) playSiren(8000);
-    return () => { if (stopSiren) stopSiren(); };
+    if (playSiren) playSiren(10000);
+
+    // Keep the blur and message for 30 seconds to encourage a real break,
+    // then auto-dismiss so the user regains control of the page.
+    const timeoutId = setTimeout(() => {
+      onDismiss?.();
+    }, 30000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (stopSiren) stopSiren();
+    };
   }, [playSiren, stopSiren]);
 
   return (
