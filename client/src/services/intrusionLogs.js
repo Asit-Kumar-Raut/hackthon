@@ -18,18 +18,33 @@ export const intrusionLogsService = {
     /**
      * Save a virtual boundary to Firestore
      */
-    async saveBoundary(zoneId, coordinates, managerId) {
+    async saveBoundary(zoneId, coordinates, managerId, meta = {}) {
         try {
+            if (!db) throw new Error('Firebase not initialized');
             const boundaryRef = doc(db, 'restricted_zones', zoneId);
-            await setDoc(boundaryRef, {
+            const data = {
                 zoneId,
-                coordinates,
-                createdBy: managerId,
+                coordinates: Array.isArray(coordinates) ? coordinates : [],
+                createdBy: managerId || 'admin',
                 createdAt: serverTimestamp(),
-            });
+                ...meta,
+            };
+            await setDoc(boundaryRef, data);
+            if (typeof localStorage !== 'undefined') {
+                try {
+                    localStorage.setItem('restricted_zone_fallback', JSON.stringify({ zoneId, coordinates, meta }));
+                } catch (e) {}
+            }
             return true;
         } catch (error) {
             console.error('Error saving boundary:', error);
+            if (typeof localStorage !== 'undefined') {
+                try {
+                    localStorage.setItem('restricted_zone_fallback', JSON.stringify({
+                        zoneId, coordinates, meta, createdBy: managerId,
+                    }));
+                } catch (e) {}
+            }
             throw error;
         }
     },

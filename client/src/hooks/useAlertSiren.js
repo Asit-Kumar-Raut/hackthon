@@ -64,5 +64,37 @@ export function useAlertSiren() {
     }
   }, [stopSiren]);
 
-  return { playSiren, stopSiren };
+  /** Play siren continuously until stopSiren() is called */
+  const playSirenContinuous = useCallback(() => {
+    stopSiren();
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      audioContextRef.current = ctx;
+
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = 0.3;
+      gainNode.connect(ctx.destination);
+      oscillator.connect(gainNode);
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+      oscillator.start(ctx.currentTime);
+      oscillatorRef.current = oscillator;
+      gainRef.current = gainNode;
+
+      let step = 0;
+      intervalRef.current = setInterval(() => {
+        step++;
+        if (oscillatorRef.current && oscillatorRef.current.frequency) {
+          const freq = step % 2 === 0 ? 880 : 660;
+          oscillatorRef.current.frequency.setValueAtTime(freq, ctx.currentTime);
+        }
+      }, 200);
+    } catch (e) {
+      console.warn('Alert siren not available:', e);
+    }
+  }, [stopSiren]);
+
+  return { playSiren, playSirenContinuous, stopSiren };
 }
