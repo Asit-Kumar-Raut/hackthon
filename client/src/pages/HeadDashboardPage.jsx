@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Container } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
@@ -108,6 +109,23 @@ export default function HeadDashboardPage() {
         <span className="navbar-brand me-auto">
           🛡️ Head Employee Dashboard
         </span>
+
+        {/* Nav tabs */}
+        <div className="d-none d-md-flex gap-1">
+          <Link
+            to="/head/dashboard"
+            className="nav-link active"
+          >
+            Crowd Dashboard
+          </Link>
+          <Link
+            to="/head/restricted-area"
+            className="nav-link"
+          >
+            Restricted Area
+          </Link>
+        </div>
+
         <span className="user-chip d-none d-md-inline-flex">
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
           {user?.name} · {user?.employeeId}

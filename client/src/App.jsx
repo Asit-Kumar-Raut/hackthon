@@ -13,6 +13,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterEmployeePage from './pages/RegisterEmployeePage';
 import EmployeeDashboardPage from './pages/EmployeeDashboardPage';
 import HeadDashboardPage from './pages/HeadDashboardPage';
+import RestrictedAreaPage from './pages/RestrictedAreaPage';
 
 import { useAuth } from './context/AuthContext';
 import GlobalLoader from './components/GlobalLoader/GlobalLoader';
@@ -58,12 +59,28 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/employee/safety"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <EmployeeDashboardPage defaultTab="safety" />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/head/dashboard"
             element={
               <ProtectedRoute requiredRole="head">
                 <HeadDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/head/restricted-area"
+            element={
+              <ProtectedRoute requiredRole="head">
+                <RestrictedAreaPage />
               </ProtectedRoute>
             }
           />

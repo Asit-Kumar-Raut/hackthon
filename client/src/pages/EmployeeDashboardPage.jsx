@@ -10,6 +10,7 @@ import { Container } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { LogoutButton } from '../components/LogoutButton';
 import PostureMonitor from '../components/PostureMonitor/PostureMonitor';
+import SafetyGearMonitor from '../components/SafetyGearMonitor/SafetyGearMonitor';
 import NotificationPanel, { pushNotification } from '../components/NotificationPanel';
 import { postureService } from '../services/firestoreService';
 import { io } from 'socket.io-client';
@@ -22,6 +23,7 @@ export default function EmployeeDashboardPage({ defaultTab }) {
   const location = useLocation();
   const socketRef = useRef(null);
   const isPosturePage = location.pathname === '/employee/posture' || defaultTab === 'posture';
+  const isSafetyPage = location.pathname === '/employee/safety' || defaultTab === 'safety';
 
   const [postureData, setPostureData] = useState({ logs: [], goodCount: 0, badCount: 0 });
   const [liveScore, setLiveScore] = useState(user?.score ?? 0);
@@ -112,7 +114,7 @@ export default function EmployeeDashboardPage({ defaultTab }) {
         <div className="d-none d-md-flex gap-1">
           <Link
             to="/employee/dashboard"
-            className={`nav-link ${!isPosturePage ? 'active' : ''}`}
+            className={`nav-link ${(!isPosturePage && !isSafetyPage) ? 'active' : ''}`}
           >
             Overview
           </Link>
@@ -121,6 +123,12 @@ export default function EmployeeDashboardPage({ defaultTab }) {
             className={`nav-link ${isPosturePage ? 'active' : ''}`}
           >
             Posture Correction
+          </Link>
+          <Link
+            to="/employee/safety"
+            className={`nav-link ${isSafetyPage ? 'active' : ''}`}
+          >
+            Safety Gear
           </Link>
         </div>
 
@@ -136,7 +144,7 @@ export default function EmployeeDashboardPage({ defaultTab }) {
       <Container fluid className="py-4">
         <AnimatePresence mode="wait">
           {/* Overview Tab */}
-          {!isPosturePage && (
+          {(!isPosturePage && !isSafetyPage) && (
             <motion.div
               key="overview"
               initial={{ opacity: 0, y: 12 }}
@@ -246,6 +254,24 @@ export default function EmployeeDashboardPage({ defaultTab }) {
                   Open Posture Correction →
                 </Link>
               </motion.div>
+
+              {/* CTA to Safety page */}
+              <motion.div
+                className="dashboard-card mt-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35 }}
+              >
+                <div className="section-header">
+                  <span>🦺</span> Safety Gear Detection
+                </div>
+                <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                  Use AI object detection to ensure compliance with personal protective equipment (PPE) standards. Real-time alerts for missing Hard Hats, Masks, and Vests.
+                </p>
+                <Link to="/employee/safety" className="btn-outline-red">
+                  Start Safety Gear Detection →
+                </Link>
+              </motion.div>
             </motion.div>
           )}
 
@@ -264,6 +290,24 @@ export default function EmployeeDashboardPage({ defaultTab }) {
               <PostureMonitor onScoreUpdate={(score, badge) => {
                 setLiveScore(score);
                 setLiveBadge(badge);
+              }} />
+            </motion.div>
+          )}
+
+          {/* Safety Gear Tab */}
+          {isSafetyPage && (
+            <motion.div
+              key="safety"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="section-header">
+                <span>🦺</span> Safety Gear Detection Monitor
+              </div>
+              <SafetyGearMonitor onScoreUpdate={(score) => {
+                setLiveScore(score);
               }} />
             </motion.div>
           )}
