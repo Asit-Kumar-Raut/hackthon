@@ -5,7 +5,7 @@ Full-stack AI-powered monitoring web application with posture detection (MediaPi
 ## Tech Stack
 
 - **Frontend:** React 18, Vite, Bootstrap 5, Axios, React Router, Context API (Auth), Framer Motion
-- **Backend:** Node.js, Express, MongoDB (Mongoose), JWT, bcrypt, Socket.io
+- **Backend:** Node.js, Express, Firebase Firestore (Admin SDK), JWT, bcrypt, Socket.io
 - **AI/CV:** MediaPipe (posture), TensorFlow.js COCO-SSD (person/crowd detection in browser), alert siren (Web Audio API)
 
 ## Project Structure
@@ -27,7 +27,8 @@ pojecthackthon/
 ├── server/                 # Node backend
 │   ├── controllers/
 │   ├── middleware/        # auth.js, socketHandlers.js
-│   ├── models/            # User, PostureLog, CrowdLog
+│   ├── services/          # userService, postureService, crowdService
+│   ├── firebase/           # Firebase Admin SDK config
 │   ├── routes/
 │   ├── server.js
 │   ├── package.json
@@ -37,9 +38,22 @@ pojecthackthon/
 
 ## Setup
 
-### 1. MongoDB
+### 1. Firebase Setup
 
-Install and run MongoDB locally, or use MongoDB Atlas and set `MONGODB_URI` in server `.env`.
+Create a Firebase project at https://console.firebase.google.com and enable Firestore Database.
+
+**Option A: Service Account Key (Recommended)**
+1. Go to Project Settings > Service Accounts
+2. Click "Generate New Private Key"
+3. Copy the JSON content and set it as `FIREBASE_SERVICE_ACCOUNT_KEY` in server `.env` (as a JSON string)
+
+**Option B: Service Account File**
+1. Download the service account JSON file
+2. Place it in the `server` directory
+3. Set `FIREBASE_SERVICE_ACCOUNT_PATH` in server `.env` to the file path
+
+**Option C: Default Credentials (for GCP/Firebase Emulator)**
+- No additional setup needed if using default credentials
 
 ### 2. (Recommended) Python OpenCV + YOLO detector
 
@@ -61,7 +75,7 @@ The detector runs at `http://localhost:5001` and is proxied by Vite as `/detecto
 cd server
 npm install
 cp .env.example .env
-# Edit .env: MONGODB_URI, JWT_SECRET, PORT (optional)
+# Edit .env: FIREBASE_SERVICE_ACCOUNT_KEY (or FIREBASE_SERVICE_ACCOUNT_PATH), JWT_SECRET, PORT (optional)
 npm run dev
 ```
 
@@ -90,12 +104,13 @@ cd client && npm run build
 
 ## Environment (server/.env)
 
-| Variable       | Description                    | Default (dev)              |
-|----------------|--------------------------------|----------------------------|
-| PORT           | Server port                    | 5000                       |
-| MONGODB_URI    | MongoDB connection string      | mongodb://localhost:27017/ai-smart-monitoring |
-| JWT_SECRET     | Secret for JWT signing         | (set in production)        |
-| CLIENT_URL     | CORS / Socket.io origin        | http://localhost:3000     |
+| Variable                      | Description                           | Default (dev)              |
+|-------------------------------|---------------------------------------|----------------------------|
+| PORT                          | Server port                           | 5000                       |
+| JWT_SECRET                    | Secret for JWT signing                | (set in production)        |
+| CLIENT_URL                    | CORS / Socket.io origin               | http://localhost:3000      |
+| FIREBASE_SERVICE_ACCOUNT_KEY  | Firebase service account JSON (string)| (required)                  |
+| FIREBASE_SERVICE_ACCOUNT_PATH | Alternative: path to service account file | (optional)            |
 
 ## Features
 
@@ -118,11 +133,15 @@ cd client && npm run build
 | GET    | /api/crowd/data      | Yes    | Head crowd logs    |
 | POST   | /api/crowd/log       | Yes    | Log crowd event    |
 
-## Database (MongoDB)
+## Database (Firebase Firestore)
 
-- **Users:** employeeId, name, password (hashed), role (employee | head).
-- **PostureLogs:** employeeId, postureStatus, duration, score, eventType, timestamps.
-- **CrowdLogs:** detectedCount, restrictedViolation, alertTriggered, recordedBy, timestamps.
+**Collections:**
+
+- **users:** employeeId (unique), name, passwordHash, role (employee | head), score, badgeLevel, lastUpdated, createdAt
+- **postureLogs:** employeeId, postureStatus (good/bad), duration, scoreAfterUpdate, eventType, timestamp
+- **crowdLogs:** detectedCount, restrictedViolation, alertTriggered, recordedBy, timestamp
+
+**Important:** User scores are updated in the same user document (not duplicated). Posture logs are separate entries for history tracking.
 
 ## Notes
 

@@ -1,29 +1,155 @@
+/* Landing Page - Premium futuristic black-red theme */
+
 .landing-page {
   background: #000000;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated red grid background */
+.landing-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: gridPan 20s linear infinite;
+  pointer-events: none;
+}
+@keyframes gridPan {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(60px); }
+}
+
+/* Radial glow at center */
+.landing-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 50% 60%, rgba(255, 0, 0, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.landing-content {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-brand {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 0, 0, 0.7);
+  margin-bottom: 1.5rem;
 }
 
 .landing-title {
   color: #ffffff;
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  font-weight: 600;
-  border-bottom: 2px solid #FF0000;
-  display: inline-block;
-  padding-bottom: 0.5rem;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
 }
 
+.landing-subtitle {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.95rem;
+  font-weight: 400;
+  margin-bottom: 3rem;
+}
+
+.landing-divider {
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #FF0000, rgba(255, 0, 0, 0.3));
+  border-radius: 2px;
+  margin: 1.5rem auto 3rem;
+}
+
+/* Main action buttons */
 .landing-btn {
-  min-width: 220px;
-  padding: 18px 36px;
-  font-size: 1.25rem;
+  position: relative;
+  min-width: 240px;
+  padding: 20px 40px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
   color: #ffffff;
   background: transparent;
   border: 2px solid #FF0000;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  letter-spacing: 0.03em;
+  overflow: hidden;
+}
+.landing-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 0, 0, 0.1) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.landing-btn:hover::after {
+  opacity: 1;
 }
 .landing-btn:hover {
   color: #ffffff;
-  background: rgba(255, 0, 0, 0.15);
-  box-shadow: 0 0 25px rgba(255, 0, 0, 0.6);
+  background: rgba(255, 0, 0, 0.1);
+  box-shadow: 0 0 30px rgba(255, 0, 0, 0.5), 0 0 60px rgba(255, 0, 0, 0.15), inset 0 0 20px rgba(255, 0, 0, 0.05);
+}
+
+.landing-btn-icon {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.landing-btn-label {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.landing-btn-desc {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+  margin-top: 4px;
+}
+
+/* Feature pills */
+.landing-features {
+  margin-top: 4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.feature-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border: 1px solid rgba(255, 0, 0, 0.25);
+  border-radius: 99px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 0, 0, 0.04);
+  letter-spacing: 0.02em;
+}
+
+.feature-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #FF0000;
+  flex-shrink: 0;
 }

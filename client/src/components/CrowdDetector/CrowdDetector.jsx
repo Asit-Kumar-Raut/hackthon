@@ -1,20 +1,26 @@
 /**
- * CrowdDetector - Real person detection via TensorFlow.js COCO-SSD (YOLO-style in browser)
+ * CrowdDetector - Live camera + person detection (YOLO Python / TensorFlow.js COCO-SSD / simulated)
  * Restricted area violation, crowd count, alert siren, red banner, log to API
  */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useAlertSiren } from '../../hooks/useAlertSiren';
+import { crowdService } from '../../services/firestoreService';
 import './CrowdDetector.css';
 
-// Trigger alert when more than 3 people are detected in the frame
-const RESTRICTED_THRESHOLD = 3;
+const RESTRICTED_THRESHOLD = 2; // Changed from 7 to match "increased from 2"
 const DETECTION_INTERVAL_MS = 1500;
 const MIN_CONFIDENCE = 0.5;
-const DETECTOR_ENDPOINT = '/detector/detect'; // Python OpenCV+YOLO service (proxied by Vite)
+const SUSTAINED_FRAMES_FOR_VIOLATION = 3; // consecutive high-crowd frames before violation
+const LOG_THROTTLE_MS = 5000; // don't log to API more than once per 5s unless count/violation changes
+
+const DETECTOR_ENDPOINT = '/detector/detect';
+const DETECTOR_HEALTH = '/detector/health';
+
+const VIDEO_WIDTH = 640;
+const VIDEO_HEIGHT = 480;
 
 export default function CrowdDetector({ onAlert, onLog }) {
   const videoRef = useRef(null);
@@ -22,6 +28,9 @@ export default function CrowdDetector({ onAlert, onLog }) {
   const streamRef = useRef(null);
   const modelRef = useRef(null);
   const intervalRef = useRef(null);
+  const highCrowdStreakRef = useRef(0);
+  const lastLogRef = useRef({ time: 0, count: -1, violation: false });
+
   const { user } = useAuth();
   const { playSiren, stopSiren } = useAlertSiren();
 
@@ -30,9 +39,11 @@ export default function CrowdDetector({ onAlert, onLog }) {
   const [restrictedViolation, setRestrictedViolation] = useState(false);
   const [alertTriggered, setAlertTriggered] = useState(false);
   const [modelLoaded, setModelLoaded] = useState(false);
-  const [detectionMode, setDetectionMode] = useState('yolo'); // 'yolo' | 'tfjs' | 'simulate'
-  const [detectorHealthy, setDetectorHealthy] = useState(null); // null | true | false
-  const [highCrowdStreak, setHighCrowdStreak] = useState(0); // number of consecutive high-crowd detections
+  const [isModelLoading, setIsModelLoading] = useState(false);
+  const [detectionMode, setDetectionMode] = useState('yolo');
+  const [detectorHealthy, setDetectorHealthy] = useState(null);
+  const [highCrowdStreak, setHighCrowdStreak] = useState(0);
+  const [cameraError, setCameraError] = useState(null);
 
   const loadModel = useCallback(async () => {
     if (modelRef.current) return true;
@@ -54,7 +65,7 @@ export default function CrowdDetector({ onAlert, onLog }) {
 
   const checkPythonDetector = useCallback(async () => {
     try {
-      const res = await fetch('/detector/health', { method: 'GET' });
+      const res = await fetch(DETECTOR_HEALTH, { method: 'GET' });
       if (!res.ok) throw new Error('Detector not ok');
       setDetectorHealthy(true);
       return true;
@@ -64,21 +75,26 @@ export default function CrowdDetector({ onAlert, onLog }) {
     }
   }, []);
 
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
+    setCameraError(null);
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error('Camera API not available in this browser.');
       }
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: VIDEO_WIDTH },
+          height: { ideal: VIDEO_HEIGHT },
+          facingMode: 'environment',
+        },
+        audio: false,
+      });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        try {
-          await videoRef.current.play();
-        } catch (playErr) {
-          console.warn('Crowd video play() failed, will rely on autoPlay/onLoadedMetadata', playErr);
-        }
-      }
+      streamRef.current = stream;
+      // We do NOT set srcObject here because videoRef isn't in the DOM yet until setIsStarted(true) mounts it.
+      setIsStarted(true);
+      setIsModelLoading(true);
+
       const detectorOk = await checkPythonDetector();
       if (detectorOk) {
         setDetectionMode('yolo');
@@ -86,39 +102,59 @@ export default function CrowdDetector({ onAlert, onLog }) {
         const loaded = await loadModel();
         setDetectionMode(loaded ? 'tfjs' : 'simulate');
       }
-      setIsStarted(true);
+
+      setIsModelLoading(false);
+      highCrowdStreakRef.current = 0;
+      setHighCrowdStreak(0);
       setAlertTriggered(false);
       setRestrictedViolation(false);
     } catch (err) {
-      console.error('Camera error', err);
+      setCameraError(err.message || 'Could not access camera.');
     }
-  };
+  }, [checkPythonDetector, loadModel]);
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     stopSiren();
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = null;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setIsStarted(false);
+    setIsModelLoading(false);
     setCrowdCount(0);
-  };
+    setRestrictedViolation(false);
+    setAlertTriggered(false);
+    setHighCrowdStreak(0);
+    highCrowdStreakRef.current = 0;
+  }, [stopSiren]);
 
-  const captureFrameDataUrl = () => {
-    if (!videoRef.current) return null;
+  // Safely mount the stream to the newly rendered <video> element once isStarted becomes true
+  useEffect(() => {
+    if (isStarted && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current.play().catch(console.error);
+      };
+    }
+  }, [isStarted]);
+
+  const captureFrameDataUrl = useCallback(() => {
     const video = videoRef.current;
+    if (!video || video.readyState < 2) return null;
     const tmp = document.createElement('canvas');
-    tmp.width = 640;
-    tmp.height = 480;
+    tmp.width = video.videoWidth || VIDEO_WIDTH;
+    tmp.height = video.videoHeight || VIDEO_HEIGHT;
     const ctx = tmp.getContext('2d');
     if (!ctx) return null;
     ctx.drawImage(video, 0, 0, tmp.width, tmp.height);
     return tmp.toDataURL('image/jpeg', 0.75);
-  };
+  }, []);
 
-  const runPythonYoloDetection = async () => {
+  const runPythonYoloDetection = useCallback(async () => {
     const image = captureFrameDataUrl();
     if (!image) throw new Error('No frame');
     const res = await fetch(DETECTOR_ENDPOINT, {
@@ -128,122 +164,129 @@ export default function CrowdDetector({ onAlert, onLog }) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || 'Detector error');
-    return data; // {count, boxes:[{bbox:[x,y,w,h], confidence}], width, height}
-  };
+    return data;
+  }, [captureFrameDataUrl]);
+
+  const drawBoxes = useCallback((boxes, isMirrored = true, sourceWidth = null, sourceHeight = null) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    const scaleX = sourceWidth && sourceWidth !== w ? w / sourceWidth : 1;
+    const scaleY = sourceHeight && sourceHeight !== h ? h / sourceHeight : 1;
+    ctx.clearRect(0, 0, w, h);
+    (boxes || []).forEach((b) => {
+      let [x, y, bw, bh] = b.bbox;
+      x *= scaleX;
+      y *= scaleY;
+      bw *= scaleX;
+      bh *= scaleY;
+      if (isMirrored) x = w - x - bw;
+      ctx.strokeStyle = '#FF0000';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, bw, bh);
+      ctx.fillStyle = '#FF0000';
+      ctx.font = '14px sans-serif';
+      const pct = (b.confidence ?? b.score ?? 0) * 100;
+      ctx.fillText(`person ${pct.toFixed(0)}%`, x, Math.max(14, y - 4));
+    });
+  }, []);
 
   const runDetection = useCallback(async () => {
-    if (!videoRef.current || videoRef.current.readyState < 2) return;
+    const video = videoRef.current;
+    if (!video || video.readyState < 2) return;
+
     let count = 0;
+    const boxes = [];
 
     if (detectionMode === 'yolo') {
       try {
         const data = await runPythonYoloDetection();
         count = data.count ?? 0;
-        if (canvasRef.current) {
-          const ctx = canvasRef.current.getContext('2d');
-          const w = canvasRef.current.width;
-          const h = canvasRef.current.height;
-          ctx.clearRect(0, 0, w, h);
-          (data.boxes || []).forEach((b) => {
-            const [x, y, bw, bh] = b.bbox;
-            const mx = w - x - bw; // mirror to match mirrored video
-            ctx.strokeStyle = '#FF0000';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(mx, y, bw, bh);
-            ctx.fillStyle = '#FF0000';
-            ctx.font = '14px sans-serif';
-            ctx.fillText(`person ${(b.confidence * 100).toFixed(0)}%`, mx, y - 4);
-          });
-        }
+        drawBoxes(
+          (data.boxes || []).map((b) => ({ ...b, confidence: b.confidence })),
+          true,
+          data.width,
+          data.height
+        );
       } catch (e) {
-        // If YOLO service is down mid-session, downgrade and use fallback this frame
         setDetectorHealthy(false);
         if (modelRef.current) {
-          setDetectionMode('tfjs');
           try {
-            const predictions = await modelRef.current.detect(videoRef.current, undefined, MIN_CONFIDENCE);
+            const predictions = await modelRef.current.detect(video, undefined, MIN_CONFIDENCE);
             count = predictions.filter((p) => p.class === 'person').length;
-            if (canvasRef.current) {
-              const ctx = canvasRef.current.getContext('2d');
-              const w = canvasRef.current.width;
-              const h = canvasRef.current.height;
-              ctx.clearRect(0, 0, w, h);
-              predictions.filter((p) => p.class === 'person').forEach((p) => {
-                const [x, y, bw, bh] = p.bbox;
-                const mx = w - x - bw;
-                ctx.strokeStyle = '#FF0000';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(mx, y, bw, bh);
-                ctx.fillStyle = '#FF0000';
-                ctx.font = '14px sans-serif';
-                ctx.fillText(`person ${(p.score * 100).toFixed(0)}%`, mx, y - 4);
-              });
-            }
+            drawBoxes(predictions.filter((p) => p.class === 'person').map((p) => ({ bbox: p.bbox, confidence: p.score })), true);
+            setDetectionMode('tfjs');
           } catch (_) {
-            count = Math.floor(Math.random() * 6);
+            count = Math.min(9, Math.floor(Math.random() * 5));
             setDetectionMode('simulate');
           }
         } else {
-          count = Math.floor(Math.random() * 9);
+          count = Math.min(9, Math.floor(Math.random() * 5));
           setDetectionMode('simulate');
         }
       }
     } else if (detectionMode === 'tfjs' && modelRef.current) {
       try {
-        const predictions = await modelRef.current.detect(videoRef.current, undefined, MIN_CONFIDENCE);
-        count = predictions.filter((p) => p.class === 'person').length;
-        if (canvasRef.current) {
-          const ctx = canvasRef.current.getContext('2d');
-          const w = canvasRef.current.width;
-          const h = canvasRef.current.height;
-          ctx.clearRect(0, 0, w, h);
-          predictions
-            .filter((p) => p.class === 'person')
-            .forEach((p) => {
-              const [x, y, bw, bh] = p.bbox;
-              const mx = w - x - bw;
-              ctx.strokeStyle = '#FF0000';
-              ctx.lineWidth = 2;
-              ctx.strokeRect(mx, y, bw, bh);
-              ctx.fillStyle = '#FF0000';
-              ctx.font = '14px sans-serif';
-              ctx.fillText(`person ${(p.score * 100).toFixed(0)}%`, mx, y - 4);
-            });
-        }
+        const predictions = await modelRef.current.detect(video, undefined, MIN_CONFIDENCE);
+        const person = predictions.filter((p) => p.class === 'person');
+        count = person.length;
+        drawBoxes(person.map((p) => ({ bbox: p.bbox, confidence: p.score })), true);
       } catch (e) {
-        count = Math.floor(Math.random() * 6);
+        count = Math.min(9, Math.floor(Math.random() * 5));
       }
     } else {
-      count = Math.floor(Math.random() * 9);
+      count = Math.min(9, Math.floor(Math.random() * 5));
     }
 
     setCrowdCount(count);
 
     const isHighCrowd = count > RESTRICTED_THRESHOLD;
-    setHighCrowdStreak((prev) => (isHighCrowd ? prev + 1 : 0));
+    const newStreak = isHighCrowd ? highCrowdStreakRef.current + 1 : 0;
+    highCrowdStreakRef.current = newStreak;
+    setHighCrowdStreak(newStreak);
 
-    // Require sustained high crowd across multiple detections before raising violation
-    const sustainedViolation = isHighCrowd && highCrowdStreak >= 1; // this + previous tick ≈ "for some time"
-
+    const sustainedViolation = isHighCrowd && newStreak >= SUSTAINED_FRAMES_FOR_VIOLATION;
     setRestrictedViolation(sustainedViolation);
+
     if (sustainedViolation && !alertTriggered) {
       setAlertTriggered(true);
-      // buzzers / siren for 10 seconds when sustained crowd condition first met
       playSiren(10000);
     }
 
-    if (user?.employeeId) {
+    const now = Date.now();
+    const last = lastLogRef.current;
+    const shouldLog =
+      now - last.time >= LOG_THROTTLE_MS ||
+      last.count !== count ||
+      last.violation !== sustainedViolation;
+
+    if (shouldLog && user?.employeeId && count > 2) {
+      lastLogRef.current = { time: now, count, violation: sustainedViolation };
       try {
-        await api.post('/api/crowd/log', {
+        await crowdService.createCrowdLog({
           detectedCount: count,
           restrictedViolation: sustainedViolation,
-          alertTriggered: sustainedViolation,
+          recordedBy: user.employeeId,
         });
-        onLog?.();
-        if (sustainedViolation) onAlert?.();
-      } catch (e) {}
+        // Pass live data to parent
+        onLog?.({ count, violation: sustainedViolation });
+        if (sustainedViolation) onAlert?.({ count, violation: sustainedViolation });
+      } catch (e) {
+        console.error('Failed to log crowd event:', e);
+      }
     }
-  }, [detectionMode, user?.employeeId, onLog, onAlert, playSiren, alertTriggered, highCrowdStreak]);
+  }, [
+    detectionMode,
+    user?.employeeId,
+    onLog,
+    onAlert,
+    playSiren,
+    alertTriggered,
+    runPythonYoloDetection,
+    drawBoxes,
+  ]);
 
   useEffect(() => {
     if (!isStarted) return;
@@ -285,41 +328,52 @@ export default function CrowdDetector({ onAlert, onLog }) {
             </motion.button>
             <span className="text-white-50 small">
               {detectionMode === 'yolo'
-                ? (detectorHealthy === false ? 'YOLO detector offline (fallback)' : 'OpenCV + YOLO (Python service)')
+                ? detectorHealthy === false
+                  ? 'YOLO offline (fallback)'
+                  : 'OpenCV + YOLO'
                 : modelLoaded
-                  ? 'TensorFlow.js COCO-SSD (person)'
-                  : 'Simulated count'}
+                  ? 'TensorFlow.js COCO-SSD'
+                  : 'Simulated'}
             </span>
           </>
         )}
       </div>
 
+      {cameraError && <div className="text-danger mb-2">{cameraError}</div>}
+
       {isStarted && (
         <>
           <div className="crowd-feed position-relative mb-3">
+            {isModelLoading && (
+              <div
+                className="position-absolute w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-dark"
+                style={{ zIndex: 10, background: 'rgba(0,0,0,0.85)' }}
+              >
+                <div className="spinner-border text-danger mb-3" role="status" style={{ width: '3rem', height: '3rem' }}></div>
+                <h5 className="text-white fw-bold mb-1">Activating AI Models</h5>
+                <span className="text-white-50 small">Connecting to object detection service...</span>
+              </div>
+            )}
             <video
               ref={videoRef}
               className="crowd-video"
-              controls
               autoPlay
               playsInline
               muted
-              onLoadedMetadata={() => {
-                if (videoRef.current) {
-                  videoRef.current.play().catch(() => {});
-                }
-              }}
+              width={VIDEO_WIDTH}
+              height={VIDEO_HEIGHT}
+              onLoadedMetadata={() => videoRef.current?.play().catch(() => { })}
               style={{ transform: 'scaleX(-1)' }}
             />
             <canvas
               ref={canvasRef}
               className="crowd-canvas"
-              width={640}
-              height={480}
+              width={VIDEO_WIDTH}
+              height={VIDEO_HEIGHT}
               style={{ transform: 'scaleX(-1)' }}
             />
             <div className="crowd-count-badge">
-              Crowd Count: <strong>{crowdCount}</strong> (person detection)
+              Crowd: <strong>{crowdCount}</strong>
             </div>
             {(restrictedViolation || alertTriggered) && (
               <div className="crowd-alert-badge">

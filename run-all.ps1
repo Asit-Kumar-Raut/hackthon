@@ -1,6 +1,6 @@
 # Run AI Smart Monitoring: Python detector, Node server, Vite client
 # Usage: .\run-all.ps1
-# Ensure MongoDB is running first.
+# Ensure Firebase is configured in server/.env first.
 
 $root = $PSScriptRoot
 

@@ -8,7 +8,8 @@ import { motion } from 'framer-motion';
 export default function CrowdAnalytics({ logs = [] }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayLogs = logs.filter((l) => new Date(l.createdAt) >= today);
+  const toDate = (l) => (l.createdAt != null ? new Date(l.createdAt) : l.timestamp != null ? new Date(l.timestamp) : null);
+  const todayLogs = logs.filter((l) => toDate(l) && toDate(l) >= today);
   const peakCount = todayLogs.length ? Math.max(...todayLogs.map((l) => l.detectedCount || 0)) : 0;
   const violationCount = todayLogs.filter((l) => l.restrictedViolation || l.alertTriggered).length;
   const recentCounts = todayLogs.slice(-30).reverse();
@@ -49,7 +50,7 @@ export default function CrowdAnalytics({ logs = [] }) {
           )}
           {recentCounts.map((log, i) => (
             <motion.div
-              key={log._id || i}
+              key={log._id ?? log.id ?? i}
               className="crowd-chart-bar"
               initial={{ height: 0 }}
               animate={{ height: `${Math.min(100, (log.detectedCount || 0) * 12)}%` }}
@@ -61,7 +62,7 @@ export default function CrowdAnalytics({ logs = [] }) {
                 background: log.restrictedViolation ? 'rgba(220, 53, 69, 0.9)' : 'rgba(255, 0, 0, 0.5)',
                 borderRadius: '4px 4px 0 0',
               }}
-              title={`${log.detectedCount} at ${new Date(log.createdAt).toLocaleTimeString()}`}
+              title={`${log.detectedCount} at ${toDate(log)?.toLocaleTimeString() ?? ''}`}
             />
           ))}
         </div>

@@ -1,41 +1,155 @@
+/* Dashboard Pages - Employee & Head dashboards */
+
 .dashboard-page {
   min-height: 100vh;
   background: #000000;
 }
 
+/* Top navbar */
 .dashboard-navbar {
-  background: rgba(10, 10, 10, 0.95);
+  background: rgba(5, 5, 5, 0.98);
   border-bottom: 2px solid #FF0000;
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 20px rgba(255, 0, 0, 0.15);
 }
 
 .dashboard-navbar .navbar-brand {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #ffffff !important;
+  letter-spacing: -0.01em;
 }
 
+/* Nav links */
+.dashboard-navbar .nav-link {
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 6px 14px !important;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+}
 .dashboard-navbar .nav-link.active {
-  border-bottom: 2px solid #FF0000;
-  margin-bottom: -2px;
+  background: rgba(255, 0, 0, 0.12);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 0, 0, 0.3);
 }
-
 .dashboard-navbar .nav-link:hover {
+  background: rgba(255, 255, 255, 0.06);
   color: #ffffff !important;
 }
 
+/* Red alert banner */
 .alert-banner {
-  border-bottom: 2px solid #dc3545;
+  background: rgba(220, 53, 69, 0.12);
+  border-bottom: 1px solid rgba(220, 53, 69, 0.4);
+  overflow: hidden;
 }
-
 .alert-banner .alert {
-  background: rgba(220, 53, 69, 0.2);
-  border: none;
+  background: transparent !important;
+  border: none !important;
+  color: #ff8080 !important;
+  margin: 0;
+  font-weight: 600;
+  padding: 10px;
+  font-size: 0.9rem;
+}
+
+/* Dashboard content area */
+.dashboard-content {
+  padding: 1.5rem;
+}
+
+/* Section headers */
+.section-header {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 0, 0, 0.3), transparent);
+  margin-left: 8px;
+}
+
+/* Stat number styles */
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.stat-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+
+/* Alert history list */
+.alert-history-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+.alert-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.85rem;
+}
+.alert-history-item:last-child {
+  border-bottom: none;
+}
+
+/* User info chip in navbar */
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 0, 0, 0.25);
+  border-radius: 99px;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Notification badge */
+.notif-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FF0000;
   color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  position: absolute;
+  top: -4px;
+  right: -4px;
 }
 
-.head-dashboard .dashboard-card {
-  border: 1px solid #FF0000;
-}
-
-.employee-dashboard .dashboard-card {
-  border: 1px solid #FF0000;
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-navbar {
+    padding: 0.6rem 1rem;
+  }
+  .stat-number {
+    font-size: 2rem;
+  }
 }

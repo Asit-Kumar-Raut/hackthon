@@ -1,14 +1,16 @@
 /**
  * AI Smart Posture & Crowd Monitoring System - Backend Server
- * Entry point: Express + MongoDB + Socket.io
+ * Entry point: Express + Firebase Firestore + Socket.io
  */
 
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
 const http = require('http');
 const { Server } = require('socket.io');
+
+// Initialize Firebase Admin SDK
+require('./firebase/config');
 
 const authRoutes = require('./routes/auth');
 const postureRoutes = require('./routes/posture');
@@ -48,13 +50,6 @@ app.get('/api/health', (req, res) => {
 io.on('connection', (socket) => {
   setupSocketHandlers(socket, io);
 });
-
-// MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-smart-monitoring';
-mongoose
-  .connect(MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB connection error:', err));
 
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {

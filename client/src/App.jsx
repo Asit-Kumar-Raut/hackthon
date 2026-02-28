@@ -14,43 +14,63 @@ import RegisterEmployeePage from './pages/RegisterEmployeePage';
 import EmployeeDashboardPage from './pages/EmployeeDashboardPage';
 import HeadDashboardPage from './pages/HeadDashboardPage';
 
+import { useAuth } from './context/AuthContext';
+import GlobalLoader from './components/GlobalLoader/GlobalLoader';
+
 export default function App() {
   const location = useLocation();
+  const { loading } = useAuth();
+  const [showLoader, setShowLoader] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!loading) {
+      // Impose a baseline dramatic viewing time for the AI Core loader
+      const timer = setTimeout(() => {
+        setShowLoader(false);
+      }, 2200);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
   return (
     <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterEmployeePage />} />
+      {showLoader ? (
+        <GlobalLoader key="global-loader" />
+      ) : (
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterEmployeePage />} />
 
-        <Route
-          path="/employee/dashboard"
-          element={
-            <ProtectedRoute requiredRole="employee">
-              <EmployeeDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employee/posture"
-          element={
-            <ProtectedRoute requiredRole="employee">
-              <EmployeeDashboardPage defaultTab="posture" />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/employee/dashboard"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <EmployeeDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employee/posture"
+            element={
+              <ProtectedRoute requiredRole="employee">
+                <EmployeeDashboardPage defaultTab="posture" />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/head/dashboard"
-          element={
-            <ProtectedRoute requiredRole="head">
-              <HeadDashboardPage />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/head/dashboard"
+            element={
+              <ProtectedRoute requiredRole="head">
+                <HeadDashboardPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      )}
     </AnimatePresence>
   );
 }

@@ -2,8 +2,9 @@
  * Crowd controller: get crowd logs, log crowd/restricted area events
  */
 
-const CrowdLog = require('../models/CrowdLog');
+const { getCrowdLogs, createCrowdLog } = require('../services/crowdService');
 const { emitCrowdAlert } = require('../middleware/socketHandlers');
+const { normalizeLog, normalizeLogs } = require('../utils/normalizeLogs');
 
 /**
  * GET /api/crowd/data
@@ -14,11 +15,8 @@ exports.getCrowdData = async (req, res) => {
     if (req.user.role !== 'head') {
       return res.status(403).json({ message: 'Only head employees can access crowd data.' });
     }
-    const logs = await CrowdLog.find()
-      .sort({ createdAt: -1 })
-      .limit(200)
-      .lean();
-    res.json({ logs });
+    const logs = await getCrowdLogs(200);
+    res.json({ logs: normalizeLogs(logs) });
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to fetch crowd data.' });
   }
@@ -33,11 +31,10 @@ exports.logCrowd = async (req, res) => {
     if (req.user.role !== 'head') {
       return res.status(403).json({ message: 'Only head employees can log crowd events.' });
     }
-    const { detectedCount, restrictedViolation, alertTriggered } = req.body;
-    const log = await CrowdLog.create({
+    const { detectedCount, restrictedViolation } = req.body;
+    const log = await createCrowdLog({
       detectedCount: detectedCount ?? 0,
       restrictedViolation: !!restrictedViolation,
-      alertTriggered: !!alertTriggered,
       recordedBy: req.user.employeeId,
     });
 
@@ -46,7 +43,7 @@ exports.logCrowd = async (req, res) => {
       if (io) emitCrowdAlert(io, { log, message: 'Crowd or restricted area alert.' });
     }
 
-    res.status(201).json(log);
+    res.status(201).json(normalizeLog(log));
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to log crowd event.' });
   }
