@@ -1,0 +1,40 @@
+.restricted-area-monitor .video-container {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    border-radius: 12px;
+    transition: box-shadow 0.3s ease;
+}
+
+.restricted-area-monitor .status-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+}
+
+.restricted-area-monitor .status-overlay.active {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.intrusion-flash {
+    animation: flashRed 1s infinite alternate;
+}
+
+@keyframes flashRed {
+    0% {
+        box-shadow: 0 0 20px rgba(255, 0, 0, 0.5) inset;
+        border-color: rgba(255, 0, 0, 0.8);
+    }
+    100% {
+        box-shadow: 0 0 40px rgba(255, 0, 0, 0.8) inset;
+        border-color: rgba(255, 0, 0, 1);
+    }
+}
