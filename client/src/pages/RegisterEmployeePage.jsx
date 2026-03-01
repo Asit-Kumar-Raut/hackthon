@@ -11,6 +11,7 @@ import './AuthPages.css';
 export default function RegisterEmployeePage() {
   const [employeeId, setEmployeeId] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('employee');
@@ -43,10 +44,14 @@ export default function RegisterEmployeePage() {
       setError('Employee ID is required.');
       return;
     }
+    if (!email.trim()) {
+      setError('Email is required.');
+      return;
+    }
 
     setLoading(true);
     try {
-      const userData = await register(employeeId.trim(), name.trim(), password, role);
+      const userData = await register(employeeId.trim(), name.trim(), email.trim(), password, role);
       if (userData.role === 'employee') navigate('/employee/dashboard', { replace: true });
       else if (userData.role === 'head') navigate('/head/dashboard', { replace: true });
     } catch (err) {
@@ -114,6 +119,19 @@ export default function RegisterEmployeePage() {
               placeholder="Enter your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="mb-3">
+            <label htmlFor="reg-email" className="form-label">Email (Mandatory – used for alerts)</label>
+            <input
+              id="reg-email"
+              type="email"
+              className="form-control form-control-custom"
+              placeholder="e.g. user@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>

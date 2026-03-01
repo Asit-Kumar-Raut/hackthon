@@ -111,6 +111,8 @@ cd client && npm run build
 | CLIENT_URL                    | CORS / Socket.io origin               | http://localhost:3000      |
 | FIREBASE_SERVICE_ACCOUNT_KEY  | Firebase service account JSON (string)| (required)                  |
 | FIREBASE_SERVICE_ACCOUNT_PATH | Alternative: path to service account file | (optional)            |
+| ALERT_EMAIL / EMAIL_USER       | Gmail address used for sending alert emails | (optional)           |
+| ALERT_EMAIL_PASS / EMAIL_PASS  | Gmail app‑password corresponding to ALERT_EMAIL | (optional)         |
 
 ## Features
 

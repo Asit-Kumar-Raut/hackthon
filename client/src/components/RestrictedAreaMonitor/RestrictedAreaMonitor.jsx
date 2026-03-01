@@ -9,9 +9,14 @@ import { motion } from 'framer-motion';
 import { pushNotification } from '../NotificationPanel';
 import { useAuth } from '../../context/AuthContext';
 import { intrusionLogsService } from '../../services/intrusionLogs';
+import { alertNotificationService } from '../../services/alertNotificationService';
+import { detectionLogsService } from '../../services/detectionLogsService';
+import { restrictedZonesExtendedService } from '../../services/restrictedZonesExtendedService';
 import { useAlertSiren } from '../../hooks/useAlertSiren';
 import GECMap from './GECMap';
 import './RestrictedAreaMonitor.css';
+import api from '../../services/api';
+import { authorizedFacesService } from '../../services/authorizedFacesService';
 
 const MODE_MAP = 'map';
 const MODE_VIDEO = 'video';
@@ -54,6 +59,48 @@ export default function RestrictedAreaMonitor({ onLogUpdate }) {
     const animationReq = useRef(null);
     const lastLogTime = useRef(0);
     const sirenActiveRef = useRef(false);
+
+    const [authorizedList, setAuthorizedList] = useState([]);
+    const [selectedPersonId, setSelectedPersonId] = useState('');
+    const [customOfficerName, setCustomOfficerName] = useState('');
+    const [activeGrant, setActiveGrant] = useState(null);
+    const activeGrantRef = useRef(null);
+    const isManager = user?.role === 'head' || user?.role === 'manager';
+
+    useEffect(() => {
+        activeGrantRef.current = activeGrant;
+    }, [activeGrant]);
+
+    useEffect(() => {
+        if (isManager) {
+            authorizedFacesService.getAllAuthorized().then((data) => setAuthorizedList(data || []));
+        }
+    }, [isManager]);
+
+    const handleGrantAccess = () => {
+        let personName = '';
+        if (selectedPersonId === 'custom') {
+            personName = customOfficerName.trim();
+        } else {
+            const person = authorizedList.find((p) => p.id === selectedPersonId);
+            if (person) personName = person.name;
+        }
+
+        if (personName) {
+            const grantObj = { id: selectedPersonId, name: personName };
+            setActiveGrant(grantObj);
+            pushNotification(`Temporary access granted to ${personName}. Alarm will be bypassed.`, 'success');
+        } else {
+            pushNotification('Please provide an officer name.', 'warning');
+        }
+    };
+
+    const handleRevokeAccess = () => {
+        setActiveGrant(null);
+        setSelectedPersonId('');
+        setCustomOfficerName('');
+        pushNotification('Temporary access revoked. Alarm reactivated.', 'alert');
+    };
 
     useEffect(() => {
         const loadModel = async () => {
@@ -143,9 +190,34 @@ export default function RestrictedAreaMonitor({ onLogUpdate }) {
         try {
             await intrusionLogsService.saveBoundary('default_zone', coords, user?.employeeId || 'admin', meta);
             pushNotification('Restriction area CCTV is activated!', 'success');
+
+            try {
+                const alertResult = await alertNotificationService.sendRestrictedZoneCreatedAlert('default_zone', user?.employeeId);
+                if (alertResult) {
+                    pushNotification('Alert sent to all registered email addresses.', 'success');
+                } else {
+                    pushNotification('Alert not saved (check Firebase rules for mobile_alerts).', 'warning');
+                }
+            } catch (alertErr) {
+                console.error('Restricted zone alert error:', alertErr);
+                pushNotification('Alert failed: ' + (alertErr?.message || 'unknown'), 'warning');
+            }
+
+            try {
+                await restrictedZonesExtendedService.createRestrictedArea({ areaId: 'default_zone', coordinates: coords, createdByManagerId: user?.employeeId || 'admin', meta });
+            } catch (extErr) {
+                console.warn('Extended zone save failed:', extErr);
+            }
+
+            try {
+                await api.post('/api/crowd/restricted-area');
+            } catch (err) {
+                console.error('SMS trigger:', err);
+            }
         } catch (e) {
             console.warn('Firebase save failed, activating locally:', e);
             pushNotification('Restriction area CCTV is activated (offline).', 'success');
+            await alertNotificationService.sendRestrictedZoneCreatedAlert('default_zone', user?.employeeId);
         }
 
         setRestrictedAreaActivated(true);
@@ -216,9 +288,11 @@ export default function RestrictedAreaMonitor({ onLogUpdate }) {
             for (const p of predictions) {
                 if (INTRUSION_CLASSES.has(p.class) && p.score > 0.4) {
                     if (isBboxInZone(p.bbox, zone)) {
-                        intrusionDetected = true;
-                        detectedClass = p.class;
-                        break;
+                        if (!activeGrantRef.current) {
+                            intrusionDetected = true;
+                            detectedClass = p.class;
+                            break;
+                        }
                     }
                 }
             }
@@ -227,18 +301,17 @@ export default function RestrictedAreaMonitor({ onLogUpdate }) {
                 if (!sirenPlaying) {
                     playSirenContinuous();
                     sirenPlaying = true;
-                }
-                setIntrusionCount((prev) => prev + 1);
-                pushNotification(`⚠ ${detectedClass} detected in restricted area!`, 'alert');
-                const now = Date.now();
-                if (now - lastLogTime.current > 3000) {
-                    lastLogTime.current = now;
+                    setIntrusionCount((prev) => prev + 1);
+                    pushNotification(`⚠ ${detectedClass} detected in restricted area!`, 'alert');
+                    lastLogTime.current = Date.now();
                     intrusionLogsService.logIntrusion({
                         zoneId: 'default_zone',
                         detectedPerson: detectedClass,
                         confidenceScore: 0.9,
                         snapshotImage: null,
                     }).then(() => onLogUpdate?.());
+                    alertNotificationService.sendUnauthorizedDetectedAlert('default_zone', 'video');
+                    detectionLogsService.addDetectionLog({ cameraId: 'video', zoneId: 'default_zone', personStatus: 'detected', accessStatus: 'Unauthorized', detectedClass, confidenceScore: 0.9, screenshotImage: null });
                 }
                 setIsIntrusion(true);
             } else {
@@ -262,10 +335,26 @@ export default function RestrictedAreaMonitor({ onLogUpdate }) {
                     if (INTRUSION_CLASSES.has(p.class) && p.score > 0.4) {
                         const [x, y, w, h] = p.bbox;
                         const inside = isBboxInZone(p.bbox, zone);
-                        ctx.strokeStyle = inside ? '#FF0000' : '#3b82f6';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(x, y, w, h);
-                        if (inside) ctx.fillText(`INTRUSION: ${p.class.toUpperCase()}`, x, y - 5);
+
+                        if (inside) {
+                            if (activeGrantRef.current) {
+                                ctx.strokeStyle = '#22c55e';
+                                ctx.lineWidth = 2;
+                                ctx.strokeRect(x, y, w, h);
+                                ctx.fillStyle = '#22c55e';
+                                ctx.fillText(`AUTHORIZED: ${activeGrantRef.current.name}`, x, y - 5);
+                            } else {
+                                ctx.strokeStyle = '#FF0000';
+                                ctx.lineWidth = 2;
+                                ctx.strokeRect(x, y, w, h);
+                                ctx.fillStyle = '#FF0000';
+                                ctx.fillText(`INTRUSION: ${p.class.toUpperCase()}`, x, y - 5);
+                            }
+                        } else {
+                            ctx.strokeStyle = '#3b82f6';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(x, y, w, h);
+                        }
                     }
                 });
                 drawBoundaryOnContext(ctx, zone, intrusionDetected);
@@ -501,13 +590,26 @@ export default function RestrictedAreaMonitor({ onLogUpdate }) {
             if (INTRUSION_CLASSES.has(p.class) && p.score > 0.4) {
                 const [x, y, w, h] = p.bbox;
                 const inside = isBboxInZone(p.bbox, zone);
-                if (inside) intrusionDetected = true;
-                ctx.strokeStyle = inside ? '#FF0000' : '#3b82f6';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(x, y, w, h);
+
                 if (inside) {
-                    ctx.fillStyle = '#FF0000';
-                    ctx.fillText(`INTRUSION: ${p.class.toUpperCase()}`, x, y - 5);
+                    if (activeGrantRef.current) {
+                        ctx.strokeStyle = '#22c55e';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(x, y, w, h);
+                        ctx.fillStyle = '#22c55e';
+                        ctx.fillText(`AUTHORIZED: ${activeGrantRef.current.name}`, x, y - 5);
+                    } else {
+                        intrusionDetected = true;
+                        ctx.strokeStyle = '#FF0000';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(x, y, w, h);
+                        ctx.fillStyle = '#FF0000';
+                        ctx.fillText(`INTRUSION: ${p.class.toUpperCase()}`, x, y - 5);
+                    }
+                } else {
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x, y, w, h);
                 }
             }
         });
@@ -518,13 +620,13 @@ export default function RestrictedAreaMonitor({ onLogUpdate }) {
             if (!sirenActiveRef.current) {
                 playSirenContinuous();
                 sirenActiveRef.current = true;
-            }
-            const now = Date.now();
-            if (now - lastLogTime.current > 5000) {
-                lastLogTime.current = now;
                 setIntrusionCount((p) => p + 1);
-                pushNotification('⚠ Unauthorized Entry Detected!', 'alert');
-                intrusionLogsService.logIntrusion({ zoneId: 'default_zone', detectedPerson: 'unknown_intruder', confidenceScore: 0.9, snapshotImage: null }).then(() => onLogUpdate?.());
+                const detectedClass = predictions.find((p) => INTRUSION_CLASSES.has(p.class) && isBboxInZone(p.bbox, zone))?.class || 'person';
+                pushNotification(`⚠ ${detectedClass} detected in restricted area!`, 'alert');
+                lastLogTime.current = Date.now();
+                intrusionLogsService.logIntrusion({ zoneId: 'default_zone', detectedPerson: detectedClass, confidenceScore: 0.9, snapshotImage: null }).then(() => onLogUpdate?.());
+                alertNotificationService.sendUnauthorizedDetectedAlert('default_zone', 'live');
+                detectionLogsService.addDetectionLog({ cameraId: 'live', zoneId: 'default_zone', personStatus: 'detected', accessStatus: 'Unauthorized', detectedClass, confidenceScore: 0.9, screenshotImage: null });
             }
         } else {
             if (sirenActiveRef.current) {
@@ -707,6 +809,54 @@ export default function RestrictedAreaMonitor({ onLogUpdate }) {
                             <span>Session Intrusions:</span>
                             <span className="fw-bold text-white fs-5">{intrusionCount}</span>
                         </div>
+                        {isManager && (
+                            <div className="p-3 mb-3 border border-secondary rounded" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                                <h6 className="mb-2">🔑 Temporary Access Grant</h6>
+                                {activeGrant ? (
+                                    <div>
+                                        <div className="text-success fw-bold small mb-2">
+                                            ✅ Access Granted to: {activeGrant.name}
+                                        </div>
+                                        <button className="btn btn-sm btn-outline-danger w-100" onClick={handleRevokeAccess}>
+                                            Revoke Access
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="d-flex flex-column gap-2">
+                                        <div className="d-flex gap-2">
+                                            <select
+                                                className="form-select form-select-sm bg-dark text-white border-secondary"
+                                                value={selectedPersonId}
+                                                onChange={(e) => setSelectedPersonId(e.target.value)}
+                                            >
+                                                <option value="">Select Officer...</option>
+                                                {authorizedList.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.name} ({p.department})</option>
+                                                ))}
+                                                <option value="custom">-- Custom Name --</option>
+                                            </select>
+                                            <button
+                                                className="btn btn-sm btn-success text-nowrap"
+                                                onClick={handleGrantAccess}
+                                                disabled={!selectedPersonId || (selectedPersonId === 'custom' && !customOfficerName.trim())}
+                                            >
+                                                Grant
+                                            </button>
+                                        </div>
+                                        {selectedPersonId === 'custom' && (
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm bg-dark text-white border-secondary"
+                                                placeholder="Enter Officer Name..."
+                                                value={customOfficerName}
+                                                onChange={(e) => setCustomOfficerName(e.target.value)}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div className="alert alert-dark small mb-0 mt-3 border-secondary">
                             <strong>Instructions:</strong>
                             <ul className="mb-0 ps-3 mt-1">

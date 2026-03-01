@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import './AuthPages.css';
 
 export default function LoginPage() {
-  const [employeeId, setEmployeeId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const userData = await login(employeeId.trim(), password);
+      const userData = await login(email.trim(), password);
       if (userData.role === 'employee') navigate('/employee/dashboard', { replace: true });
       else if (userData.role === 'head') navigate('/head/dashboard', { replace: true });
       else navigate('/', { replace: true });
@@ -89,14 +89,14 @@ export default function LoginPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate>
           <div className="mb-3">
-            <label htmlFor="login-emp-id" className="form-label">Employee ID</label>
+            <label htmlFor="login-email" className="form-label">Email</label>
             <input
-              id="login-emp-id"
-              type="text"
+              id="login-email"
+              type="email"
               className="form-control form-control-custom"
-              placeholder="e.g. EMP001"
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
+              placeholder="e.g. user@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
               required
             />

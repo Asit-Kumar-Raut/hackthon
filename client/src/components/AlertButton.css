@@ -1,0 +1,130 @@
+.alert-floating-btn {
+
+  position: fixed;
+
+  bottom: 20px;
+
+  right: 20px;
+
+  width: 65px;
+
+  height: 65px;
+
+  border-radius: 50%;
+
+  border: 2px solid red;
+
+  background: black;
+
+  color: red;
+
+  font-size: 26px;
+
+  cursor: pointer;
+
+  box-shadow: 0 0 15px red;
+
+}
+
+
+.alert-menu {
+
+  position: fixed;
+
+  bottom: 95px;
+
+  right: 20px;
+
+  background: black;
+
+  border: 2px solid red;
+
+  padding: 15px;
+
+  border-radius: 10px;
+
+  width: 260px;
+
+  box-shadow: 0 0 15px red;
+
+}
+
+
+.alert-btn {
+
+  width: 100%;
+
+  margin-bottom: 10px;
+
+  padding: 10px;
+
+  background: black;
+
+  border: 1px solid red;
+
+  color: red;
+
+  cursor: pointer;
+
+  font-weight: bold;
+
+}
+
+
+.alert-btn:hover {
+
+  background: red;
+
+  color: black;
+
+}
+
+
+.alert-form {
+
+  display: flex;
+
+  flex-direction: column;
+
+}
+
+
+.alert-form input {
+
+  margin-bottom: 10px;
+
+  padding: 10px;
+
+  background: black;
+
+  border: 1px solid red;
+
+  color: red;
+
+}
+
+
+.alert-submit {
+
+  padding: 10px;
+
+  background: red;
+
+  border: none;
+
+  color: black;
+
+  font-weight: bold;
+
+  cursor: pointer;
+
+}
+
+
+.alert-submit:hover {
+
+  background: darkred;
+
+  color: white;
+
+}

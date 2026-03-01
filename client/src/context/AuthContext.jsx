@@ -1,7 +1,7 @@
 /**
  * AuthContext - Firebase Authentication & Firestore user management
- * Login: employeeId → lookup email → Firebase signIn → Firestore profile
- * Register: create Firebase auth + Firestore user doc
+ * Login: email + password → Firebase signIn → Firestore profile
+ * Register: email, password, employeeId → Firebase auth + Firestore user doc (email stored for alerts)
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -26,14 +26,6 @@ import {
 import { auth, db } from '../firebase/config';
 
 const AuthContext = createContext(null);
-
-/**
- * Derive email from employeeId for Firebase Auth
- * (Firebase Auth requires an email; we synthesize one)
- */
-function toEmail(employeeId) {
-  return `${employeeId.toLowerCase()}@ai-monitoring.com`;
-}
 
 /**
  * Compute badge level from score
@@ -88,14 +80,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   /**
-   * Login with employeeId + password
-   * Flow: employeeId → convert to email → Firebase signIn
-   * (All users are stored with email = `<employeeId>@ai-monitoring.com`)
+   * Login with email + password
    */
-  const login = async (employeeId, password) => {
+  const login = async (email, password) => {
     try {
-      const email = toEmail(employeeId);
-      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
       const uid = credential.user.uid;
 
       const snap = await getDoc(doc(db, 'users', uid));
@@ -106,9 +95,9 @@ export function AuthProvider({ children }) {
         const roleHint = new URLSearchParams(window.location.search).get('role') === 'head' ? 'head' : 'employee';
 
         const recoveredData = {
-          employeeId,
-          name: employeeId, // Fallback name
-          email,
+          employeeId: email.split('@')[0],
+          name: email.split('@')[0],
+          email: email.trim(),
           role: roleHint,
           score: 0,
           badgeLevel: 1,
@@ -133,7 +122,7 @@ export function AuthProvider({ children }) {
         err.code === 'auth/invalid-credential' ||
         err.code === 'auth/invalid-email'
       ) {
-        throw new Error('Invalid Employee ID or password.');
+        throw new Error('Invalid email or password.');
       }
       if (err.code === 'auth/too-many-requests') {
         throw new Error('Too many failed attempts. Please wait and try again.');
@@ -143,30 +132,21 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Register new user
-   * Creates Firebase Auth account + Firestore user document
+   * Register new user - email, password, employeeId (email stored for alerts)
    */
-  const register = async (employeeId, name, password, role = 'employee') => {
+  const register = async (employeeId, name, email, password, role = 'employee') => {
     try {
-      const email = toEmail(employeeId);
+      const emailTrim = email.trim().toLowerCase();
 
-      // Note: We skip the Firestore check here because Firebase Auth 
-      // will automatically throw 'auth/email-already-in-use' if the employeeId 
-      // (which we converted to an email) has already been registered!
-      // This solves the 'Missing or insufficient permissions' error on strict DB rules.
-
-      // Create Firebase Auth user
-      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      const credential = await createUserWithEmailAndPassword(auth, emailTrim, password);
       const firebaseUser = credential.user;
 
-      // Set display name in Auth
       await updateProfile(firebaseUser, { displayName: name });
 
-      // Create Firestore user document (keyed by Firebase UID)
       const userData = {
-        employeeId,
-        name,
-        email,
+        employeeId: employeeId.trim(),
+        name: name.trim(),
+        email: emailTrim,
         role,
         score: 0,
         badgeLevel: 1,
@@ -181,7 +161,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error('Registration error:', err);
       if (err.code === 'auth/email-already-in-use') {
-        throw new Error('Employee ID is already registered.');
+        throw new Error('This email is already registered.');
       }
       if (err.code === 'auth/weak-password') {
         throw new Error('Password must be at least 6 characters.');

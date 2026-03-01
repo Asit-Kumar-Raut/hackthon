@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { LogoutButton } from '../components/LogoutButton';
 import NotificationPanel from '../components/NotificationPanel';
 import RestrictedAreaMonitor from '../components/RestrictedAreaMonitor/RestrictedAreaMonitor';
+import AccessControlPanel from '../components/RestrictedAreaMonitor/AccessControlPanel';
+import MobileAlertsPanel from '../components/RestrictedAreaMonitor/MobileAlertsPanel';
 import { intrusionLogsService } from '../services/intrusionLogs';
 import './DashboardPages.css';
 
@@ -127,6 +129,9 @@ export default function RestrictedAreaPage() {
                                 )}
                             </div>
                         </motion.div>
+
+                        <AccessControlPanel />
+                        <MobileAlertsPanel />
                     </motion.div>
                 </AnimatePresence>
             </Container>
