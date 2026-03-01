@@ -1,6 +1,6 @@
-# Python YOLO Crowd Detector
+# Python YOLO 4-Zone Crowd Detector
 
-This Python service provides real-time person/crowd detection using OpenCV and YOLOv8. It runs as a Flask API server that the frontend calls for accurate crowd counting.
+This Python service provides real-time person/crowd detection using OpenCV and YOLOv8. It runs as a Flask API server that the frontend calls for accurate crowd counting, while simultaneously managing a local real-time 4-zone alert escalation monitoring window natively.
 
 ## Prerequisites
 
@@ -119,14 +119,17 @@ If YOLOv8 fails to download the model:
    - Decodes the image
    - Runs YOLOv8 detection
    - Filters for "person" class (class ID 0)
-   - Returns count and bounding boxes
-5. Frontend displays results and draws boxes on canvas
+   - Splits rendering view into 4 specific zones using math centroid operations.
+   - Monitors each quadrant. Assigns Warning Stage (Yellow) for 2+ people immediately, Red Stage (Danger) for 3 seconds of sustained crowd, and plays an Audio Alarm for 5 seconds.
+   - Returns count and bounding boxes to the Web Frontend.
+   - Triggers `cv2.imshow` on localhost for raw feed visibility and native `winsound` audio.
+5. Frontend displays results and draws similar grid boxes natively on the HTML canvas to mirror the server's findings
 
 ## Performance
 
 - **Model**: YOLOv8n (nano) - fastest, smallest model
 - **Speed**: ~50-100ms per frame (depends on hardware)
-- **Accuracy**: Good for person detection in typical office/indoor scenes
+- **Accuracy**: Good for 4-zone restricted area monitoring in typical office/indoor scenes
 
 ## Stopping the Detector
 

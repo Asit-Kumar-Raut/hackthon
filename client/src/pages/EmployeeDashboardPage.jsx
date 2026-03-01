@@ -119,12 +119,6 @@ export default function EmployeeDashboardPage({ defaultTab }) {
             Overview
           </Link>
           <Link
-            to="/employee/posture"
-            className={`nav-link ${isPosturePage ? 'active' : ''}`}
-          >
-            Posture Correction
-          </Link>
-          <Link
             to="/employee/safety"
             className={`nav-link ${isSafetyPage ? 'active' : ''}`}
           >
@@ -236,24 +230,7 @@ export default function EmployeeDashboardPage({ defaultTab }) {
                 </div>
               </motion.div>
 
-              {/* CTA to Posture page */}
-              <motion.div
-                className="dashboard-card"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.25 }}
-              >
-                <div className="section-header">
-                  <span>📹</span> Posture Correction
-                </div>
-                <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                  Start the live webcam session to monitor your posture in real time using MediaPipe AI.
-                  Good posture increases your score, bad posture triggers alerts.
-                </p>
-                <Link to="/employee/posture" className="btn-outline-red">
-                  Open Posture Correction →
-                </Link>
-              </motion.div>
+
 
               {/* CTA to Safety page */}
               <motion.div

@@ -126,8 +126,8 @@ export default function RegisterEmployeePage() {
               value={role}
               onChange={(e) => setRole(e.target.value)}
             >
-              <option value="employee">Employee (Posture Monitoring)</option>
-              <option value="head">Head Employee (Crowd Detection)</option>
+              <option value="employee">employee</option>
+              <option value="head">maneger</option>
             </select>
           </div>
 

@@ -604,8 +604,8 @@ export default function PostureMonitor({ onScoreUpdate }) {
               style={{ zIndex: 10, background: 'rgba(0,0,0,0.85)' }}
             >
               <div className="spinner-border text-danger mb-3" role="status" style={{ width: '3rem', height: '3rem' }}></div>
-              <h5 className="text-white fw-bold mb-1">Activating AI Model</h5>
-              <span className="text-white-50 small">Loading MediaPipe Pose constraints...</span>
+              <h5 className="text-white fw-bold mb-1">Industri safty monitoring system</h5>
+              <span className="text-white-50 small">Loading System...</span>
             </div>
           )}
           <video

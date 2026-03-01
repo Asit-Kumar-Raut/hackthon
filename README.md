@@ -1,4 +1,4 @@
-# AI Smart Posture & Crowd Monitoring System
+# Industri safty monitoring system
 
 Full-stack AI-powered monitoring web application with posture detection (MediaPipe) and crowd detection (simulated; YOLO-ready), JWT auth, and role-based dashboards.
 
@@ -6,7 +6,7 @@ Full-stack AI-powered monitoring web application with posture detection (MediaPi
 
 - **Frontend:** React 18, Vite, Bootstrap 5, Axios, React Router, Context API (Auth), Framer Motion
 - **Backend:** Node.js, Express, Firebase Firestore (Admin SDK), JWT, bcrypt, Socket.io
-- **AI/CV:** MediaPipe (posture), TensorFlow.js COCO-SSD (person/crowd detection in browser), alert siren (Web Audio API)
+- **AI/CV:** OpenCV, YOLOv8 (person/crowd detection), TensorFlow.js COCO-SSD (fallback), alert siren (Web Audio API/winsound)
 
 ## Project Structure
 
@@ -114,11 +114,11 @@ cd client && npm run build
 
 ## Features
 
-- **Landing:** Two buttons — Employee, Head Employee (Server).
+- **Landing:** Two buttons — employee, maneger (Server).
 - **Auth:** Login (Employee ID + Password), Register (employeeId, name, password, role). JWT + bcrypt.
-- **Employee Dashboard:** Overview (daily score, badge, good/bad counts). **Posture Correction** page: Start / End monitoring; live webcam, posture status (Good/Bad), score, badge, history chart; alert popup + blur after 10 min bad posture; logs to API.
-- **Head Dashboard:** Live camera, **person/crowd detection** in order: (1) **OpenCV + YOLO** (Python service on port 5001) if running, (2) TensorFlow.js COCO-SSD in browser, (3) simulated count; restricted-area violation, **audible alert siren**, red alert banner, **Crowd Analytics**, alert history; logs to API.
-- **Alert Siren:** Web Audio API siren plays on posture alert (>10 min bad) and on crowd violation; stops when user dismisses or stops camera.
+- **Employee Dashboard:** Overview (daily score, badge, good/bad counts). Safety gear detection.
+- **Manager Dashboard:** Live camera, **person/crowd detection** running 4-zone logic: (1) **OpenCV + YOLO** (Python service on port 5001) dividing the stream into 4 zones, triggering escalating warnings and alarms natively. Fits fallback TensorFlow.js logic if the python server is absent; restricted-area violation, **audible alert siren**, red alert banner, **Crowd Analytics**, alert history; logs to API.
+- **Alert Siren:** Web Audio API and local Python `winsound` trigger on 4-zone critical stage.
 - **UI:** Black background (#000000), red borders (#FF0000), white text, red outline buttons with hover glow; responsive; Framer Motion animations.
 
 ## API Summary
@@ -151,4 +151,4 @@ cd client && npm run build
 - **Alert siren:** Plays automatically on posture alert and crowd violation; allow browser audio if prompted.
 
 # hckthon
- Full-stack AI-powered monitoring web application with posture detection (MediaPipe) and crowd detection (simulated; YOLO-ready), JWT auth, and role-based dashboards.
+ Full-stack AI-powered monitoring web application with safety detection and crowd detection (simulated; YOLO-ready), JWT auth, and role-based dashboards.

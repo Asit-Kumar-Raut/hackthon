@@ -107,7 +107,7 @@ export default function HeadDashboardPage() {
       {/* Navbar */}
       <nav className="dashboard-navbar d-flex align-items-center gap-3">
         <span className="navbar-brand me-auto">
-          🛡️ Head Employee Dashboard
+          maneger(head employee) dash board
         </span>
 
         {/* Nav tabs */}

@@ -17,10 +17,7 @@ const MODE_MAP = 'map';
 const MODE_VIDEO = 'video';
 const MODE_LIVE = 'live';
 
-const INTRUSION_CLASSES = new Set([
-  'person', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-  'elephant', 'bear', 'zebra', 'giraffe',
-]);
+const INTRUSION_CLASSES = new Set(['person']);
 
 export default function RestrictedAreaMonitor({ onLogUpdate }) {
     const { user } = useAuth();

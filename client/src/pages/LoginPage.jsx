@@ -65,7 +65,7 @@ export default function LoginPage() {
             Sign In
             {roleHint && (
               <span className="auth-role-badge">
-                {roleHint === 'employee' ? 'Employee' : 'Head Employee'}
+                {roleHint === 'employee' ? 'employee' : 'maneger'}
               </span>
             )}
           </h2>

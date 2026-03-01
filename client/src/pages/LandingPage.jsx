@@ -9,12 +9,11 @@ import { motion } from 'framer-motion';
 import './LandingPage.css';
 
 const features = [
-  'MediaPipe Posture AI',
-  'YOLO Crowd Detection',
+  'safety gear',
   'Real-time Alerts',
+  'YOLO restricted area detection and safety detection',
   'Firebase Firestore',
   'Socket.io Live Sync',
-  'Badge Level System',
 ];
 
 export default function LandingPage() {
@@ -50,17 +49,17 @@ export default function LandingPage() {
       >
         {/* Brand label */}
         <motion.div className="landing-brand" variants={itemVariants}>
-          🔴 AI Smart Monitoring System
+          INDUSTRI safty Monitoring System
         </motion.div>
 
         {/* Main title */}
         <motion.h1 className="landing-title" variants={itemVariants}>
-          AI-Based Smart<br />Monitoring System
+          INDUSTRI safty<br />Monitoring System
         </motion.h1>
 
         {/* Subtitle */}
         <motion.p className="landing-subtitle" variants={itemVariants}>
-          Real-time posture correction & crowd detection powered by AI
+          INDUSTRI safty Monitoring System
         </motion.p>
 
         {/* Red divider */}
@@ -80,8 +79,7 @@ export default function LandingPage() {
             whileTap={{ scale: 0.97 }}
           >
             <span className="landing-btn-icon">👨‍💻</span>
-            <span className="landing-btn-label">Employee</span>
-            <span className="landing-btn-desc">Posture Monitoring</span>
+            <span className="landing-btn-label">employee</span>
           </motion.button>
 
           <motion.button
@@ -93,8 +91,7 @@ export default function LandingPage() {
             whileTap={{ scale: 0.97 }}
           >
             <span className="landing-btn-icon">🛡️</span>
-            <span className="landing-btn-label">Head Employee</span>
-            <span className="landing-btn-desc">Crowd Detection (Server)</span>
+            <span className="landing-btn-label">maneger</span>
           </motion.button>
         </motion.div>
 

@@ -28,8 +28,13 @@ export default function CrowdDetector({ onAlert, onLog }) {
   const streamRef = useRef(null);
   const modelRef = useRef(null);
   const intervalRef = useRef(null);
-  const highCrowdStreakRef = useRef(0);
   const lastLogRef = useRef({ time: 0, count: -1, violation: false });
+  const zoneStatesRef = useRef({
+    1: { startTime: null, status: 'SAFE', count: 0 },
+    2: { startTime: null, status: 'SAFE', count: 0 },
+    3: { startTime: null, status: 'SAFE', count: 0 },
+    4: { startTime: null, status: 'SAFE', count: 0 },
+  });
 
   const { user } = useAuth();
   const { playSiren, stopSiren } = useAlertSiren();
@@ -42,7 +47,6 @@ export default function CrowdDetector({ onAlert, onLog }) {
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [detectionMode, setDetectionMode] = useState('yolo');
   const [detectorHealthy, setDetectorHealthy] = useState(null);
-  const [highCrowdStreak, setHighCrowdStreak] = useState(0);
   const [cameraError, setCameraError] = useState(null);
 
   const loadModel = useCallback(async () => {
@@ -104,8 +108,9 @@ export default function CrowdDetector({ onAlert, onLog }) {
       }
 
       setIsModelLoading(false);
-      highCrowdStreakRef.current = 0;
-      setHighCrowdStreak(0);
+      Object.keys(zoneStatesRef.current).forEach(z => {
+        zoneStatesRef.current[z] = { startTime: null, status: 'SAFE', count: 0 };
+      });
       setAlertTriggered(false);
       setRestrictedViolation(false);
     } catch (err) {
@@ -128,8 +133,6 @@ export default function CrowdDetector({ onAlert, onLog }) {
     setCrowdCount(0);
     setRestrictedViolation(false);
     setAlertTriggered(false);
-    setHighCrowdStreak(0);
-    highCrowdStreakRef.current = 0;
   }, [stopSiren]);
 
   // Safely mount the stream to the newly rendered <video> element once isStarted becomes true
@@ -169,28 +172,130 @@ export default function CrowdDetector({ onAlert, onLog }) {
 
   const drawBoxes = useCallback((boxes, isMirrored = true, sourceWidth = null, sourceHeight = null) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return { playAlarm: false, hasViolation: false };
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
     const scaleX = sourceWidth && sourceWidth !== w ? w / sourceWidth : 1;
     const scaleY = sourceHeight && sourceHeight !== h ? h / sourceHeight : 1;
+
     ctx.clearRect(0, 0, w, h);
-    (boxes || []).forEach((b) => {
+
+    // 1. Calculate Zone Counts
+    const zoneCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    const scaledBoxes = (boxes || []).map(b => {
       let [x, y, bw, bh] = b.bbox;
-      x *= scaleX;
-      y *= scaleY;
-      bw *= scaleX;
-      bh *= scaleY;
+      x *= scaleX; y *= scaleY; bw *= scaleX; bh *= scaleY;
       if (isMirrored) x = w - x - bw;
+
+      const cx = x + bw / 2;
+      const cy = y + bh / 2;
+
+      let zone = 1;
+      if (cx < w / 2) {
+        zone = cy < h / 2 ? 1 : 3;
+      } else {
+        zone = cy < h / 2 ? 2 : 4;
+      }
+      zoneCounts[zone]++;
+
+      return { ...b, x, y, bw, bh, cx, cy, zone };
+    });
+
+    // 2. State & Escalation Logic
+    const now = Date.now();
+    let playAlarm = false;
+    let hasViolation = false;
+    const zoneStates = zoneStatesRef.current;
+
+    const zoneColors = {
+      'SAFE': 'rgba(0, 255, 0, 0.25)',
+      'WARNING': 'rgba(255, 255, 0, 0.35)',
+      'RED ALERT': 'rgba(255, 0, 0, 0.45)',
+    };
+    const textColors = {
+      'SAFE': '#00FF00',
+      'WARNING': '#FFFF00',
+      'RED ALERT': '#FF0000',
+    };
+
+    for (let z = 1; z <= 4; z++) {
+      const count = zoneCounts[z];
+      let state = zoneStates[z];
+      state.count = count;
+
+      if (count >= 2) {
+        if (!state.startTime) state.startTime = now;
+        const elapsedSec = (now - state.startTime) / 1000;
+
+        if (elapsedSec >= 5) {
+          state.status = 'RED ALERT';
+          playAlarm = true;
+          hasViolation = true;
+        } else if (elapsedSec >= 3) {
+          state.status = 'RED ALERT';
+          hasViolation = true;
+        } else {
+          state.status = 'WARNING';
+        }
+      } else {
+        state.startTime = null;
+        state.status = 'SAFE';
+      }
+    }
+
+    // 3. Draw Zone Backgrounds & Texts
+    const halfW = w / 2;
+    const halfH = h / 2;
+    const zoneRects = {
+      1: [0, 0, halfW, halfH],
+      2: [halfW, 0, halfW, halfH],
+      3: [0, halfH, halfW, halfH],
+      4: [halfW, halfH, halfW, halfH]
+    };
+
+    for (let z = 1; z <= 4; z++) {
+      const [zx, zy, zw, zh] = zoneRects[z];
+      const status = zoneStates[z].status;
+
+      ctx.fillStyle = zoneColors[status];
+      ctx.fillRect(zx, zy, zw, zh);
+
+      ctx.fillStyle = textColors[status];
+      ctx.font = 'bold 18px sans-serif';
+      const textX = zx + 10;
+      const textY = zy + 30;
+      ctx.fillText(`Zone ${z}`, textX, textY);
+      ctx.font = '16px sans-serif';
+      ctx.fillText(`Count: ${zoneStates[z].count}`, textX, textY + 25);
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillText(status, textX, textY + 50);
+    }
+
+    // 4. Draw Grid Lines
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(halfW, 0); ctx.lineTo(halfW, h);
+    ctx.moveTo(0, halfH); ctx.lineTo(w, halfH);
+    ctx.stroke();
+
+    // 5. Draw Boxes
+    scaledBoxes.forEach(b => {
       ctx.strokeStyle = '#FF0000';
       ctx.lineWidth = 2;
-      ctx.strokeRect(x, y, bw, bh);
+      ctx.strokeRect(b.x, b.y, b.bw, b.bh);
       ctx.fillStyle = '#FF0000';
       ctx.font = '14px sans-serif';
       const pct = (b.confidence ?? b.score ?? 0) * 100;
-      ctx.fillText(`person ${pct.toFixed(0)}%`, x, Math.max(14, y - 4));
+      ctx.fillText(`person ${pct.toFixed(0)}%`, b.x, Math.max(14, b.y - 4));
+
+      ctx.beginPath();
+      ctx.arc(b.cx, b.cy, 4, 0, 2 * Math.PI);
+      ctx.fill();
     });
+
+    return { playAlarm, hasViolation };
   }, []);
 
   const runDetection = useCallback(async () => {
@@ -198,25 +303,30 @@ export default function CrowdDetector({ onAlert, onLog }) {
     if (!video || video.readyState < 2) return;
 
     let count = 0;
-    const boxes = [];
+    let hasZoneViolation = false;
+    let playZoneAlarm = false;
 
     if (detectionMode === 'yolo') {
       try {
         const data = await runPythonYoloDetection();
         count = data.count ?? 0;
-        drawBoxes(
+        const res = drawBoxes(
           (data.boxes || []).map((b) => ({ ...b, confidence: b.confidence })),
           true,
           data.width,
           data.height
         );
+        hasZoneViolation = res.hasViolation;
+        playZoneAlarm = res.playAlarm;
       } catch (e) {
         setDetectorHealthy(false);
         if (modelRef.current) {
           try {
             const predictions = await modelRef.current.detect(video, undefined, MIN_CONFIDENCE);
             count = predictions.filter((p) => p.class === 'person').length;
-            drawBoxes(predictions.filter((p) => p.class === 'person').map((p) => ({ bbox: p.bbox, confidence: p.score })), true);
+            const res = drawBoxes(predictions.filter((p) => p.class === 'person').map((p) => ({ bbox: p.bbox, confidence: p.score })), true);
+            hasZoneViolation = res.hasViolation;
+            playZoneAlarm = res.playAlarm;
             setDetectionMode('tfjs');
           } catch (_) {
             count = Math.min(9, Math.floor(Math.random() * 5));
@@ -232,7 +342,9 @@ export default function CrowdDetector({ onAlert, onLog }) {
         const predictions = await modelRef.current.detect(video, undefined, MIN_CONFIDENCE);
         const person = predictions.filter((p) => p.class === 'person');
         count = person.length;
-        drawBoxes(person.map((p) => ({ bbox: p.bbox, confidence: p.score })), true);
+        const res = drawBoxes(person.map((p) => ({ bbox: p.bbox, confidence: p.score })), true);
+        hasZoneViolation = res.hasViolation;
+        playZoneAlarm = res.playAlarm;
       } catch (e) {
         count = Math.min(9, Math.floor(Math.random() * 5));
       }
@@ -242,17 +354,19 @@ export default function CrowdDetector({ onAlert, onLog }) {
 
     setCrowdCount(count);
 
-    const isHighCrowd = count > RESTRICTED_THRESHOLD;
-    const newStreak = isHighCrowd ? highCrowdStreakRef.current + 1 : 0;
-    highCrowdStreakRef.current = newStreak;
-    setHighCrowdStreak(newStreak);
-
-    const sustainedViolation = isHighCrowd && newStreak >= SUSTAINED_FRAMES_FOR_VIOLATION;
+    const sustainedViolation = hasZoneViolation;
     setRestrictedViolation(sustainedViolation);
 
-    if (sustainedViolation && !alertTriggered) {
-      setAlertTriggered(true);
-      playSiren(10000);
+    if (playZoneAlarm) {
+      if (!alertTriggered) {
+        setAlertTriggered(true);
+        playSiren(10000);
+      }
+    } else {
+      if (alertTriggered) {
+        setAlertTriggered(false);
+        stopSiren();
+      }
     }
 
     const now = Date.now();
@@ -350,8 +464,8 @@ export default function CrowdDetector({ onAlert, onLog }) {
                 style={{ zIndex: 10, background: 'rgba(0,0,0,0.85)' }}
               >
                 <div className="spinner-border text-danger mb-3" role="status" style={{ width: '3rem', height: '3rem' }}></div>
-                <h5 className="text-white fw-bold mb-1">Activating AI Models</h5>
-                <span className="text-white-50 small">Connecting to object detection service...</span>
+                <h5 className="text-white fw-bold mb-1">Industri safty monitoring system</h5>
+                <span className="text-white-50 small">Connecting to monitoring service...</span>
               </div>
             )}
             <video
