@@ -136,7 +136,7 @@ export default function LoginPage() {
 
           <p className="text-center mb-0" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.35)' }}>
             No account yet?{' '}
-            <Link to="/register" style={{ color: 'rgba(255,80,80,0.8)' }}>
+            <Link to="/register" style={{ color: 'rgba(99, 102, 241, 0.8)' }}>
               Register here
             </Link>
           </p>

@@ -1,23 +1,23 @@
 /**
- * Global Theme: Pure Black (#000000) | Bright Red (#FF0000) | White Text
+ * Global Theme: Dark Blue (#0a0e27) | Indigo (#6366f1) | White Text
  * Professional corporate AI monitoring dashboard
  * Font: Inter (Google Fonts)
  */
 
 :root {
-  --bg-primary: #000000;
-  --bg-secondary: #0a0a0a;
-  --bg-card: rgba(12, 12, 12, 0.95);
-  --bg-card-hover: rgba(20, 20, 20, 0.98);
-  --border-red: #FF0000;
-  --border-red-soft: rgba(255, 0, 0, 0.4);
+  --bg-primary: #0a0e27;
+  --bg-secondary: #0f1535;
+  --bg-card: rgba(15, 23, 42, 0.95);
+  --bg-card-hover: rgba(25, 35, 65, 0.98);
+  --border-red: #6366f1;
+  --border-red-soft: rgba(99, 102, 241, 0.4);
   --text-white: #ffffff;
   --text-muted: rgba(255, 255, 255, 0.5);
-  --red-glow: rgba(255, 0, 0, 0.6);
-  --red-glow-soft: rgba(255, 0, 0, 0.25);
-  --red-soft: rgba(255, 0, 0, 0.12);
+  --red-glow: rgba(99, 102, 241, 0.6);
+  --red-glow-soft: rgba(99, 102, 241, 0.25);
+  --red-soft: rgba(99, 102, 241, 0.12);
   --success-color: #22c55e;
-  --danger-color: #FF0000;
+  --danger-color: #6366f1;
   --warning-color: #f59e0b;
 }
 
@@ -53,14 +53,14 @@ body {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #000;
+  background: #0a0e27;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border-red);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #cc0000;
+  background: #4f46e5;
 }
 
 /* =====================

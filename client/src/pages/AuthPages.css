@@ -1,7 +1,7 @@
-/* Auth Pages - Login & Register - Premium black-red theme */
+/* Auth Pages - Login & Register - Premium blue-indigo theme */
 
 .auth-page {
-  background: #000000;
+  background: #0a0e27;
   position: relative;
   overflow: hidden;
 }
@@ -11,7 +11,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255, 0, 0, 0.06) 0%, transparent 70%);
+  background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -21,11 +21,11 @@
   z-index: 1;
   max-width: 440px;
   width: 100%;
-  border: 1px solid rgba(255, 0, 0, 0.5);
+  border: 1px solid rgba(99, 102, 241, 0.5);
   border-radius: 16px;
   padding: 2.5rem;
-  background: rgba(8, 8, 8, 0.97);
-  box-shadow: 0 0 60px rgba(255, 0, 0, 0.08), 0 20px 40px rgba(0, 0, 0, 0.6);
+  background: rgba(15, 23, 42, 0.97);
+  box-shadow: 0 0 60px rgba(99, 102, 241, 0.08), 0 20px 40px rgba(0, 0, 0, 0.6);
 }
 
 /* Top accent line */
@@ -36,7 +36,7 @@
   left: 15%;
   right: 15%;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #FF0000, transparent);
+  background: linear-gradient(90deg, transparent, #6366f1, transparent);
   border-radius: 0 0 2px 2px;
 }
 
@@ -56,7 +56,7 @@
 
 .auth-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), transparent);
   margin: 1.25rem 0;
 }
 
@@ -70,8 +70,8 @@
 
 .auth-page .form-control,
 .auth-page .form-select {
-  background: rgba(18, 18, 18, 0.95) !important;
-  border: 1px solid rgba(255, 0, 0, 0.4) !important;
+  background: rgba(20, 32, 65, 0.95) !important;
+  border: 1px solid rgba(99, 102, 241, 0.4) !important;
   color: #ffffff !important;
   border-radius: 8px !important;
   padding: 10px 14px;
@@ -81,9 +81,9 @@
 
 .auth-page .form-control:focus,
 .auth-page .form-select:focus {
-  background: rgba(22, 22, 22, 0.98) !important;
-  border-color: #FF0000 !important;
-  box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.2) !important;
+  background: rgba(24, 36, 72, 0.98) !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
   color: #ffffff !important;
   outline: none;
 }
@@ -102,9 +102,9 @@
   font-size: 0.7rem;
   font-weight: 600;
   padding: 3px 10px;
-  border: 1px solid rgba(255, 0, 0, 0.5);
+  border: 1px solid rgba(99, 102, 241, 0.5);
   border-radius: 99px;
-  color: rgba(255, 80, 80, 0.8);
+  color: rgba(99, 102, 241, 0.8);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   vertical-align: middle;
